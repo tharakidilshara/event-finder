@@ -117,8 +117,21 @@ body {
   text-decoration: none;
 }
 
+button.nav__link {
+  padding: 0;
+  font: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
 .nav__link:hover {
   color: var(--accent);
+}
+
+.nav__link--active {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .nav__muted {
@@ -131,6 +144,42 @@ body {
   flex-direction: column;
   gap: 3rem;
   padding: 2.5rem 0 0;
+}
+
+.view-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.view-panel[hidden] {
+  display: none !important;
+}
+
+.saved-panel__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--heading);
+  text-align: center;
+}
+
+.saved-panel__lede {
+  margin: 0.35rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.saved-panel__empty {
+  margin: 1.25rem 0 0;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface-elevated) 90%, transparent);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }
 
 .hero {
@@ -331,10 +380,11 @@ body {
 }
 
 .event-card {
+  position: relative;
   background: var(--surface-elevated);
   border: 1px solid var(--border-strong);
   border-radius: 14px;
-  padding: 1.1rem 1.25rem;
+  padding: 1.1rem 3.25rem 1.1rem 1.25rem;
   box-shadow: var(--shadow-soft);
   text-align: left;
   transition:
@@ -385,6 +435,61 @@ body {
   margin: 0.65rem 0 0;
   font-size: 0.9375rem;
   color: var(--text);
+}
+
+.event-card__save {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--text-muted);
+  backdrop-filter: blur(6px);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.event-card__save-icon {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  pointer-events: none;
+}
+
+.event-card__save:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
+  transform: scale(1.05);
+}
+
+.event-card__save:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.event-card__save--saved {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.event-card__save--saved:hover {
+  border-color: var(--accent-hot);
+  color: var(--accent-hot);
 }
 
 .features__heading {

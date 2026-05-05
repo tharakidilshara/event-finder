@@ -1,8 +1,11 @@
 import './style.css'
 import { renderEventCards } from './components/eventCard.js'
 
+const savedEventIds = new Set()
+
 const mockEvents = [
   {
+    id: 'evt-orientation-mixer',
     title: 'Orientation mixer',
     dateLabel: 'Sat, 12 Oct · 5:00 PM',
     location: 'Student Union lawn',
@@ -10,6 +13,7 @@ const mockEvents = [
     description: 'Meet clubs, grab snacks, and find your people before term gets busy.',
   },
   {
+    id: 'evt-career-fair-tech',
     title: 'Career fair: tech & design',
     dateLabel: 'Wed, 16 Oct · 10:00 AM',
     location: 'Sports hall',
@@ -17,6 +21,7 @@ const mockEvents = [
     description: 'Employers hiring interns and grads—bring your CV or portfolio link.',
   },
   {
+    id: 'evt-film-night-classics',
     title: 'Film night: classics',
     dateLabel: 'Fri, 18 Oct · 8:00 PM',
     location: 'Lecture theatre B',
@@ -24,6 +29,7 @@ const mockEvents = [
     description: 'Open to all; short intro talk then a restored 35mm screening.',
   },
   {
+    id: 'evt-beginner-yoga',
     title: 'Beginner yoga',
     dateLabel: 'Mon, 21 Oct · 7:30 AM',
     location: 'Wellness studio',
@@ -48,22 +54,61 @@ function updateEventsView() {
   if (!searchInput || !eventsListEl || !emptyMsg) return
 
   const filtered = filterEvents(searchInput.value)
-  renderEventCards(eventsListEl, filtered)
+  renderEventCards(eventsListEl, filtered, savedEventIds)
   emptyMsg.hidden = filtered.length > 0
+}
+
+function getSavedEvents() {
+  return mockEvents.filter((e) => savedEventIds.has(e.id))
+}
+
+function updateSavedView() {
+  const listEl = document.querySelector('#saved-events-list')
+  const emptyMsg = document.querySelector('#saved-empty-msg')
+  if (!listEl || !emptyMsg) return
+  const list = getSavedEvents()
+  renderEventCards(listEl, list, savedEventIds)
+  emptyMsg.hidden = list.length > 0
+}
+
+function setNavActive(view) {
+  const home = document.querySelector('#nav-home')
+  const savedBtn = document.querySelector('#nav-saved')
+  home?.classList.toggle('nav__link--active', view === 'browse')
+  savedBtn?.classList.toggle('nav__link--active', view === 'saved')
+  if (view === 'browse') {
+    home?.setAttribute('aria-current', 'page')
+    savedBtn?.removeAttribute('aria-current')
+  } else {
+    savedBtn?.setAttribute('aria-current', 'page')
+    home?.removeAttribute('aria-current')
+  }
+}
+
+function showView(view) {
+  const browse = document.querySelector('#view-browse')
+  const savedPanel = document.querySelector('#view-saved')
+  if (!browse || !savedPanel) return
+  const isBrowse = view === 'browse'
+  browse.hidden = !isBrowse
+  savedPanel.hidden = isBrowse
+  setNavActive(view)
+  if (isBrowse) updateEventsView()
+  else updateSavedView()
 }
 
 document.querySelector('#app').innerHTML = `
   <div class="page">
     <header class="header">
-      <a class="logo" href="/">Event Finder</a>
+      <a class="logo" href="/" id="logo-home">Event Finder</a>
       <nav class="nav" aria-label="Main">
-        <a class="nav__link" href="/">Home</a>
-        <span class="nav__muted">Browse</span>
-        <span class="nav__muted">Saved</span>
+        <button type="button" class="nav__link nav__link--active" id="nav-home" aria-current="page">Home</button>
+        <button type="button" class="nav__link" id="nav-saved">Saved</button>
       </nav>
     </header>
 
     <main class="main">
+      <div id="view-browse" class="view-panel">
       <section class="hero" aria-labelledby="hero-title">
         <p class="hero__eyebrow">Campus &amp; community</p>
         <h1 id="hero-title" class="hero__title">Find events that fit your week</h1>
@@ -131,6 +176,18 @@ document.querySelector('#app').innerHTML = `
           </li>
         </ul>
       </section>
+      </div>
+
+      <div id="view-saved" class="view-panel" hidden>
+        <section class="saved-panel" aria-labelledby="saved-title">
+          <h2 id="saved-title" class="saved-panel__title">Saved events</h2>
+          <p class="saved-panel__lede">Events you bookmarked from the list.</p>
+          <p class="saved-panel__empty" id="saved-empty-msg" hidden role="status">
+            No saved events yet. Open Home, explore events, then tap the bookmark on a card.
+          </p>
+          <ul class="events__list" id="saved-events-list"></ul>
+        </section>
+      </div>
     </main>
 
     <footer class="footer">
@@ -143,6 +200,25 @@ const exploreBtn = document.querySelector('#explore-events-btn')
 const eventsSection = document.querySelector('#mock-events-section')
 
 document.querySelector('#event-search')?.addEventListener('input', updateEventsView)
+
+document.querySelector('.main')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action="save-event"]')
+  if (!btn) return
+  const id = btn.dataset.eventId
+  if (!id) return
+  if (savedEventIds.has(id)) savedEventIds.delete(id)
+  else savedEventIds.add(id)
+  updateEventsView()
+  updateSavedView()
+})
+
+document.querySelector('#nav-home')?.addEventListener('click', () => showView('browse'))
+document.querySelector('#nav-saved')?.addEventListener('click', () => showView('saved'))
+
+document.querySelector('#logo-home')?.addEventListener('click', (e) => {
+  e.preventDefault()
+  showView('browse')
+})
 
 exploreBtn?.addEventListener('click', () => {
   if (!eventsSection) return
