@@ -1,14 +1,6 @@
 import './style.css'
 
-type MockEvent = {
-  title: string
-  dateLabel: string
-  location: string
-  category: string
-  description: string
-}
-
-const mockEvents: MockEvent[] = [
+const mockEvents = [
   {
     title: 'Orientation mixer',
     dateLabel: 'Sat, 12 Oct · 5:00 PM',
@@ -39,8 +31,17 @@ const mockEvents: MockEvent[] = [
   },
 ]
 
-function renderEventCards(container: HTMLElement): void {
-  container.innerHTML = mockEvents
+function filterEvents(query) {
+  const q = query.trim().toLowerCase()
+  if (!q) return mockEvents
+  return mockEvents.filter((e) => {
+    const blob = `${e.title} ${e.dateLabel} ${e.location} ${e.category} ${e.description}`.toLowerCase()
+    return blob.includes(q)
+  })
+}
+
+function renderEventCards(container, events) {
+  container.innerHTML = events
     .map(
       (e) => `
     <li class="event-card">
@@ -57,7 +58,18 @@ function renderEventCards(container: HTMLElement): void {
     .join('')
 }
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+function updateEventsView() {
+  const searchInput = document.querySelector('#event-search')
+  const eventsListEl = document.querySelector('#mock-events-list')
+  const emptyMsg = document.querySelector('#events-empty-msg')
+  if (!searchInput || !eventsListEl || !emptyMsg) return
+
+  const filtered = filterEvents(searchInput.value)
+  renderEventCards(eventsListEl, filtered)
+  emptyMsg.hidden = filtered.length > 0
+}
+
+document.querySelector('#app').innerHTML = `
   <div class="page">
     <header class="header">
       <a class="logo" href="/">Event Finder</a>
@@ -75,15 +87,45 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <p class="hero__lede">
           Browse what is on nearby, filter by what matters to you, then save a spot or register in one place.
         </p>
+        <div class="hero__search search">
+          <div class="search__control">
+            <svg
+              class="search__icon"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="search"
+              class="search__input"
+              id="event-search"
+              name="event-search"
+              placeholder="Try yoga, careers, hall…"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Search events"
+            />
+          </div>
+        </div>
         <div class="hero__actions">
           <button type="button" class="btn btn--primary" id="explore-events-btn">Explore events</button>
-          <button type="button" class="btn btn--ghost">How it works</button>
         </div>
       </section>
 
       <section class="events" id="mock-events-section" hidden aria-labelledby="mock-events-title">
         <h2 id="mock-events-title" class="events__title">Mock events</h2>
         <p class="events__hint">Sample data for the UI—swap in a real API later.</p>
+        <p class="events__empty" id="events-empty-msg" hidden role="status">No events match your search.</p>
         <ul class="events__list" id="mock-events-list"></ul>
       </section>
 
@@ -116,14 +158,15 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `
 
-const exploreBtn = document.querySelector<HTMLButtonElement>('#explore-events-btn')
-const eventsSection = document.querySelector<HTMLElement>('#mock-events-section')
-const eventsList = document.querySelector<HTMLUListElement>('#mock-events-list')
+const exploreBtn = document.querySelector('#explore-events-btn')
+const eventsSection = document.querySelector('#mock-events-section')
+
+document.querySelector('#event-search')?.addEventListener('input', updateEventsView)
 
 exploreBtn?.addEventListener('click', () => {
-  if (!eventsSection || !eventsList) return
+  if (!eventsSection) return
 
-  renderEventCards(eventsList)
+  updateEventsView()
   eventsSection.hidden = false
   eventsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
