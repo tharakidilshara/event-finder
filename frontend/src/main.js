@@ -1,4 +1,5 @@
 import './style.css'
+import { renderEventCards } from './components/eventCard.js'
 
 const mockEvents = [
   {
@@ -38,24 +39,6 @@ function filterEvents(query) {
     const blob = `${e.title} ${e.dateLabel} ${e.location} ${e.category} ${e.description}`.toLowerCase()
     return blob.includes(q)
   })
-}
-
-function renderEventCards(container, events) {
-  container.innerHTML = events
-    .map(
-      (e) => `
-    <li class="event-card">
-      <div class="event-card__meta">
-        <span class="event-card__category">${e.category}</span>
-      </div>
-      <h3 class="event-card__title">${e.title}</h3>
-      <p class="event-card__when">${e.dateLabel}</p>
-      <p class="event-card__where">${e.location}</p>
-      <p class="event-card__desc">${e.description}</p>
-    </li>
-  `,
-    )
-    .join('')
 }
 
 function updateEventsView() {
@@ -123,8 +106,6 @@ document.querySelector('#app').innerHTML = `
       </section>
 
       <section class="events" id="mock-events-section" hidden aria-labelledby="mock-events-title">
-        <h2 id="mock-events-title" class="events__title">Mock events</h2>
-        <p class="events__hint">Sample data for the UI—swap in a real API later.</p>
         <p class="events__empty" id="events-empty-msg" hidden role="status">No events match your search.</p>
         <ul class="events__list" id="mock-events-list"></ul>
       </section>
@@ -153,7 +134,7 @@ document.querySelector('#app').innerHTML = `
     </main>
 
     <footer class="footer">
-      <p class="footer__text">Event Finder — simple home for your app shell.</p>
+      <!-- <p class="footer__text">Event Finder — simple home for your app shell.</p> -->
     </footer>
   </div>
 `
