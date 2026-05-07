@@ -1,5 +1,11 @@
 import './style.css'
 import { renderEventCards } from './components/eventCard.js'
+import { getPostEventMarkup, initPostEventForm } from './components/postEvent.js'
+import {
+  getEventDetailMarkup,
+  initEventDetail,
+  openEventDetail,
+} from './components/eventDetail.js'
 
 const savedEventIds = new Set()
 
@@ -11,6 +17,7 @@ let mockEvents = [
     location: 'Student Union lawn',
     category: 'Social',
     description: 'Meet clubs, grab snacks, and find your people before term gets busy.',
+    imageUrl: 'https://picsum.photos/seed/orientation-mixer/800/450',
   },
   {
     id: 'evt-career-fair-tech',
@@ -19,6 +26,7 @@ let mockEvents = [
     location: 'Sports hall',
     category: 'Careers',
     description: 'Employers hiring interns and grads—bring your CV or portfolio link.',
+    imageUrl: 'https://picsum.photos/seed/career-fair-tech/800/450',
   },
   {
     id: 'evt-film-night-classics',
@@ -27,6 +35,7 @@ let mockEvents = [
     location: 'Lecture theatre B',
     category: 'Arts',
     description: 'Open to all; short intro talk then a restored 35mm screening.',
+    imageUrl: 'https://picsum.photos/seed/film-night-classics/800/450',
   },
   {
     id: 'evt-beginner-yoga',
@@ -35,6 +44,7 @@ let mockEvents = [
     location: 'Wellness studio',
     category: 'Wellness',
     description: 'Mats provided. Register on the door if spaces remain.',
+    imageUrl: 'https://picsum.photos/seed/beginner-yoga/800/450',
   },
 ]
 
@@ -136,7 +146,7 @@ document.querySelector('#app').innerHTML = `
       <a class="logo" href="/" id="logo-home">Event Finder</a>
       <nav class="nav" aria-label="Main">
         <button type="button" class="nav__link nav__link--active" id="nav-home" aria-current="page">Home</button>
-        <button type="button" class="nav__link" id="nav-post">Post</button>
+        <button type="button" class="nav__link" id="nav-post">Add Event</button>
         <button type="button" class="nav__link" id="nav-saved">Saved</button>
       </nav>
     </header>
@@ -224,49 +234,7 @@ document.querySelector('#app').innerHTML = `
       </div>
 
       <div id="view-post" class="view-panel" hidden>
-        <section class="post-panel" aria-labelledby="post-title">
-          <h2 id="post-title" class="saved-panel__title">Post an event</h2>
-          <p class="saved-panel__lede">Create a new event (mock only — no database yet).</p>
-
-          <form id="post-event-form" class="post-form">
-            <div class="post-form__grid">
-              <div class="post-form__field">
-                <label class="post-form__label" for="post-title-input">Title</label>
-                <input class="post-form__input" id="post-title-input" name="title" required placeholder="e.g. Hackathon kickoff" />
-              </div>
-
-              <div class="post-form__field">
-                <label class="post-form__label" for="post-category-input">Category</label>
-                <input class="post-form__input" id="post-category-input" name="category" required placeholder="e.g. Tech" />
-              </div>
-
-              <div class="post-form__field">
-                <label class="post-form__label" for="post-date-input">Date</label>
-                <input class="post-form__input" id="post-date-input" name="date" type="date" required />
-              </div>
-
-              <div class="post-form__field">
-                <label class="post-form__label" for="post-time-input">Time</label>
-                <input class="post-form__input" id="post-time-input" name="time" type="time" required />
-              </div>
-
-              <div class="post-form__field post-form__field--full">
-                <label class="post-form__label" for="post-location-input">Location</label>
-                <input class="post-form__input" id="post-location-input" name="location" required placeholder="e.g. Auditorium A" />
-              </div>
-
-              <div class="post-form__field post-form__field--full">
-                <label class="post-form__label" for="post-desc-input">Description</label>
-                <textarea class="post-form__textarea" id="post-desc-input" name="description" rows="4" required placeholder="Short details about the event…"></textarea>
-              </div>
-            </div>
-
-            <div class="post-form__actions">
-              <button type="button" class="btn btn--ghost" id="post-cancel-btn">Cancel</button>
-              <button type="submit" class="btn btn--primary">Post event</button>
-            </div>
-          </form>
-        </section>
+        ${getPostEventMarkup()}
       </div>
     </main>
 
@@ -274,6 +242,7 @@ document.querySelector('#app').innerHTML = `
       <!-- <p class="footer__text">Event Finder — simple home for your app shell.</p> -->
     </footer>
   </div>
+  ${getEventDetailMarkup()}
 `
 
 const exploreBtn = document.querySelector('#explore-events-btn')
@@ -281,15 +250,53 @@ const eventsSection = document.querySelector('#mock-events-section')
 
 document.querySelector('#event-search')?.addEventListener('input', updateEventsView)
 
-document.querySelector('.main')?.addEventListener('click', (e) => {
-  const btn = e.target.closest('button[data-action="save-event"]')
-  if (!btn) return
-  const id = btn.dataset.eventId
-  if (!id) return
-  if (savedEventIds.has(id)) savedEventIds.delete(id)
-  else savedEventIds.add(id)
+function toggleSaved(id) {
+  if (!id) return false
+  if (savedEventIds.has(id)) {
+    savedEventIds.delete(id)
+  } else {
+    savedEventIds.add(id)
+  }
   updateEventsView()
   updateSavedView()
+  return savedEventIds.has(id)
+}
+
+function openEventById(id) {
+  if (!id) return
+  const event = mockEvents.find((ev) => ev.id === id)
+  if (!event) return
+  openEventDetail(event, savedEventIds.has(event.id))
+}
+
+document.querySelector('.main')?.addEventListener('click', (e) => {
+  const target = e.target
+  if (!(target instanceof Element)) return
+
+  const saveBtn = target.closest('button[data-action="save-event"]')
+  if (saveBtn) {
+    toggleSaved(saveBtn.dataset.eventId)
+    return
+  }
+
+  const card = target.closest('[data-action="open-event"]')
+  if (card instanceof HTMLElement) {
+    openEventById(card.dataset.eventId)
+  }
+})
+
+document.querySelector('.main')?.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return
+  const target = e.target
+  if (!(target instanceof HTMLElement)) return
+  const card = target.closest('[data-action="open-event"]')
+  if (!(card instanceof HTMLElement)) return
+  e.preventDefault()
+  openEventById(card.dataset.eventId)
+})
+
+initEventDetail({
+  onToggleSave: (id) => toggleSaved(id),
 })
 
 document.querySelector('#nav-home')?.addEventListener('click', () => showView('browse'))
@@ -301,38 +308,26 @@ document.querySelector('#logo-home')?.addEventListener('click', (e) => {
   showView('browse')
 })
 
-document.querySelector('#post-cancel-btn')?.addEventListener('click', () => showView('browse'))
+initPostEventForm({
+  onCancel: () => showView('browse'),
+  onSubmit: (values, form) => {
+    const newEvent = {
+      id: createEventId(values.title),
+      title: values.title,
+      dateLabel: formatDateLabel(values.date, values.time),
+      location: values.location,
+      category: values.category,
+      description: values.description,
+      imageUrl: values.imageUrl,
+    }
 
-document.querySelector('#post-event-form')?.addEventListener('submit', (e) => {
-  e.preventDefault()
-  const form = e.currentTarget
-  if (!(form instanceof HTMLFormElement)) return
+    mockEvents = [newEvent, ...mockEvents]
+    form.reset()
 
-  const fd = new FormData(form)
-  const title = String(fd.get('title') || '').trim()
-  const category = String(fd.get('category') || '').trim()
-  const date = String(fd.get('date') || '').trim()
-  const time = String(fd.get('time') || '').trim()
-  const location = String(fd.get('location') || '').trim()
-  const description = String(fd.get('description') || '').trim()
-
-  if (!title || !category || !date || !time || !location || !description) return
-
-  const newEvent = {
-    id: createEventId(title),
-    title,
-    dateLabel: formatDateLabel(date, time),
-    location,
-    category,
-    description,
-  }
-
-  mockEvents = [newEvent, ...mockEvents]
-  form.reset()
-
-  showView('browse')
-  updateEventsView()
-  if (eventsSection) eventsSection.hidden = false
+    showView('browse')
+    updateEventsView()
+    if (eventsSection) eventsSection.hidden = false
+  },
 })
 
 exploreBtn?.addEventListener('click', () => {

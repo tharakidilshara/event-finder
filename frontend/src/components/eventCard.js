@@ -7,6 +7,7 @@
  * @property {string} location
  * @property {string} category
  * @property {string} description
+ * @property {string} [imageUrl]
  */
 
 function bookmarkIconSvg(isFilled) {
@@ -17,7 +18,11 @@ function bookmarkIconSvg(isFilled) {
 }
 
 /**
- * Build a single event row for the list.
+ * Build a single event row for the list. The `<li>` itself is the click
+ * target — `data-action="open-event"` lets a delegated handler open the
+ * detail modal. The save button stops bubbling via its own `data-action`
+ * marker.
+ *
  * @param {EventRecord} event
  * @param {boolean} isSaved
  * @returns {HTMLLIElement}
@@ -25,6 +30,11 @@ function bookmarkIconSvg(isFilled) {
 export function createEventCardElement(event, isSaved) {
   const li = document.createElement('li')
   li.className = 'event-card'
+  li.dataset.action = 'open-event'
+  li.dataset.eventId = event.id
+  li.setAttribute('role', 'button')
+  li.setAttribute('tabindex', '0')
+  li.setAttribute('aria-label', `View details for ${event.title}`)
 
   const meta = document.createElement('div')
   meta.className = 'event-card__meta'
