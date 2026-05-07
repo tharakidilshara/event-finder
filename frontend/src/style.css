@@ -451,10 +451,14 @@ button.nav__link {
 
 .event-card {
   position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
   background: var(--surface-elevated);
   border: 1px solid var(--border-strong);
   border-radius: 14px;
-  padding: 1.1rem 3.25rem 1.1rem 1.25rem;
+  padding: 0;
+  overflow: hidden;
   box-shadow: var(--shadow-soft);
   text-align: left;
   cursor: pointer;
@@ -473,6 +477,55 @@ button.nav__link {
 .event-card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.event-card__body {
+  flex: 1;
+  min-width: 0;
+  padding: 1.1rem 1rem 1.1rem 1.25rem;
+}
+
+.event-card__thumb {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 320px;
+  min-height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  object-fit: cover;
+  object-position: center;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  clip-path: polygon(15% 0, 100% 0, 100% 100%);
+  -webkit-clip-path: polygon(15% 0, 100% 0, 100% 100%);
+}
+
+.event-card__thumb--placeholder {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 22%, transparent),
+    color-mix(in srgb, var(--accent-hot) 16%, transparent)
+  );
+}
+
+@media (max-width: 720px) {
+  .event-card__thumb {
+    width: 240px;
+  }
+}
+
+@media (max-width: 560px) {
+  .event-card {
+    gap: 0.4rem;
+  }
+  .event-card__body {
+    padding: 0.9rem 0.4rem 0.9rem 1rem;
+  }
+  .event-card__thumb {
+    width: 170px;
+    clip-path: polygon(25% 0, 100% 0, 100% 100%);
+    -webkit-clip-path: polygon(25% 0, 100% 0, 100% 100%);
+  }
 }
 
 .event-card__meta {

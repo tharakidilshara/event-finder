@@ -36,6 +36,9 @@ export function createEventCardElement(event, isSaved) {
   li.setAttribute('tabindex', '0')
   li.setAttribute('aria-label', `View details for ${event.title}`)
 
+  const body = document.createElement('div')
+  body.className = 'event-card__body'
+
   const meta = document.createElement('div')
   meta.className = 'event-card__meta'
 
@@ -60,6 +63,21 @@ export function createEventCardElement(event, isSaved) {
   desc.className = 'event-card__desc'
   desc.textContent = event.description
 
+  body.append(meta, title, when, where, desc)
+
+  let thumb
+  if (event.imageUrl) {
+    thumb = document.createElement('img')
+    thumb.className = 'event-card__thumb'
+    thumb.src = event.imageUrl
+    thumb.alt = ''
+    thumb.loading = 'lazy'
+  } else {
+    thumb = document.createElement('div')
+    thumb.className = 'event-card__thumb event-card__thumb--placeholder'
+    thumb.setAttribute('aria-hidden', 'true')
+  }
+
   const saveBtn = document.createElement('button')
   saveBtn.type = 'button'
   saveBtn.className = 'event-card__save'
@@ -74,7 +92,7 @@ export function createEventCardElement(event, isSaved) {
   saveBtn.innerHTML = bookmarkIconSvg(isSaved)
   if (isSaved) saveBtn.classList.add('event-card__save--saved')
 
-  li.append(meta, title, when, where, desc, saveBtn)
+  li.append(body, thumb, saveBtn)
   return li
 }
 
