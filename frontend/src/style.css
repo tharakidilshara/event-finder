@@ -613,14 +613,22 @@ button.nav__link {
 }
 
 .event-card__save--saved {
-  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent);
+  border: 2px solid #c026d3;
+  background: #ffffff;
+  color: #a21caf;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 4px 14px rgba(192, 38, 211, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .event-card__save--saved:hover {
-  border-color: var(--accent-hot);
-  color: var(--accent-hot);
+  border-color: #be185d;
+  color: #9d174d;
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.22),
+    0 6px 20px rgba(190, 24, 93, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .features__heading {
