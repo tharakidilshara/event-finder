@@ -18,6 +18,12 @@ export function toListItem(doc) {
   const price = Number(doc.price) || 0
   const isFree = doc.isFree !== false && !(price > 0)
   const startsAt = doc.startsAt ? new Date(doc.startsAt).toISOString() : undefined
+  const creatorId =
+    doc.createdBy != null
+      ? typeof doc.createdBy === 'object' && doc.createdBy && '_id' in doc.createdBy
+        ? String(doc.createdBy._id)
+        : String(doc.createdBy)
+      : null
   return {
     id: String(doc._id),
     title: doc.title,
@@ -29,6 +35,7 @@ export function toListItem(doc) {
     imageUrl: doc.imageUrl || '',
     isFree,
     price: isFree ? 0 : price,
+    creatorId,
   }
 }
 

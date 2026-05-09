@@ -157,8 +157,9 @@ function setNotice(text, tone) {
  * Populate the modal with an event's data and reveal it.
  * @param {EventRecord} event
  * @param {boolean} isSaved
+ * @param {{ canManage?: boolean }} [options] — show Edit/Delete only for the event owner when signed in.
  */
-export function openEventDetail(event, isSaved) {
+export function openEventDetail(event, isSaved, options = {}) {
   const modal = document.querySelector('#event-detail-modal')
   if (!modal) return
 
@@ -210,6 +211,12 @@ export function openEventDetail(event, isSaved) {
   setSaveButtonState(isSaved)
   setBuyButtonState(currentEventIsFree, currentEventPrice)
   setNotice('')
+
+  const editBtn = modal.querySelector('[data-action="edit-event"]')
+  const delBtn = modal.querySelector('[data-action="delete-event"]')
+  const canManage = Boolean(options.canManage)
+  if (editBtn instanceof HTMLElement) editBtn.hidden = !canManage
+  if (delBtn instanceof HTMLElement) delBtn.hidden = !canManage
 
   modal.hidden = false
   document.body.classList.add('modal-open')

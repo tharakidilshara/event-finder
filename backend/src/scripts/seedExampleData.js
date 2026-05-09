@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import bcrypt from 'bcryptjs'
 import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import { Event } from '../models/Event.js'
@@ -34,9 +35,13 @@ async function main() {
   await mongoose.connect(uri)
   console.log('Connected to MongoDB')
 
+  const demoPasswordHash = await bcrypt.hash('demo1234', 12)
   const organizer = await User.findOneAndUpdate(
     { email: 'demo.organizer@eventfinder.example' },
-    { $setOnInsert: { name: 'Demo Organizer', email: 'demo.organizer@eventfinder.example' } },
+    {
+      $set: { name: 'Demo Organizer', passwordHash: demoPasswordHash },
+      $setOnInsert: { email: 'demo.organizer@eventfinder.example' },
+    },
     { upsert: true, new: true },
   )
 
@@ -130,6 +135,7 @@ async function main() {
   const inserted = await Event.insertMany(events)
   console.log(`Inserted ${inserted.length} example events.`)
   console.log('Demo user (organizer):', organizer.email, '→', String(organizer._id))
+  console.log('Demo login password: demo1234')
 
   await mongoose.disconnect()
   console.log('Done.')

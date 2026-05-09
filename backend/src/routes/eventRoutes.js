@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { asyncHandler } from '../middleware/asyncHandler.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 import {
   listEvents,
   getEventById,
@@ -13,9 +14,9 @@ const router = Router()
 
 router.get('/stats/by-category', asyncHandler(getEventsByCategoryStats))
 router.get('/', asyncHandler(listEvents))
-router.post('/', asyncHandler(createEvent))
+router.post('/', requireAuth, asyncHandler(createEvent))
 router.get('/:id', asyncHandler(getEventById))
-router.patch('/:id', asyncHandler(updateEvent))
-router.delete('/:id', asyncHandler(deleteEvent))
+router.patch('/:id', requireAuth, asyncHandler(updateEvent))
+router.delete('/:id', requireAuth, asyncHandler(deleteEvent))
 
 export default router

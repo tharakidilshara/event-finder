@@ -1,5 +1,7 @@
 import './style.css'
+import { clearSession, fetchMe, getAccessToken, getStoredUser } from './api/auth.js'
 import { createEvent, deleteEvent, fetchEventById, fetchEvents, patchEvent } from './api/events.js'
+import { getAuthModalMarkup, initAuthModal, openAuthModal } from './components/authModal.js'
 import { renderEventCards, renderEventSkeletons } from './components/eventCard.js'
 import { getPostEventMarkup, initPostEventForm, setPostPanelBusy } from './components/postEvent.js'
 import {
@@ -286,6 +288,37 @@ function setNavActive(view) {
   }
 }
 
+function refreshAuthNav() {
+  const label = document.querySelector('#nav-user-label')
+  const signOut = document.querySelector('#nav-signout')
+  const u = getStoredUser()
+  if (label && signOut) {
+    if (u) {
+      label.textContent = u.name || u.email
+      label.hidden = false
+      signOut.hidden = false
+    } else {
+      label.textContent = ''
+      label.hidden = true
+      signOut.hidden = true
+    }
+  }
+}
+
+/**
+ * @param {object} event
+ * @returns {boolean}
+ */
+function canManageEvent(event) {
+  const user = getStoredUser()
+  if (!user) return false
+  const cid =
+    event.creatorId ??
+    (event.creator && typeof event.creator === 'object' && event.creator.id ? event.creator.id : null)
+  if (!cid) return false
+  return cid === user.id
+}
+
 function showView(view) {
   const browse = document.querySelector('#view-browse')
   const savedPanel = document.querySelector('#view-saved')
@@ -311,6 +344,8 @@ document.querySelector('#app').innerHTML = `
         <button type="button" class="nav__link nav__link--active" id="nav-home" aria-current="page">Home</button>
         <button type="button" class="nav__link" id="nav-post">Add Event</button>
         <button type="button" class="nav__link" id="nav-saved">Saved</button>
+        <span class="nav__user" id="nav-user-label" hidden></span>
+        <button type="button" class="nav__link nav__link--subtle" id="nav-signout" hidden>Sign out</button>
       </nav>
     </header>
 
@@ -421,6 +456,7 @@ document.querySelector('#app').innerHTML = `
   </div>
   ${getEventDetailMarkup()}
   ${getRegisterTicketMarkup()}
+  ${getAuthModalMarkup()}
 `
 
 document.querySelector('#event-search')?.addEventListener('input', scheduleBrowseSearch)
@@ -432,37 +468,87 @@ const postFormControls = initPostEventForm({
   },
   onSubmit: async (values) => {
     const editingId = document.querySelector('#post-editing-id')?.value?.trim()
-    if (editingId) {
-      await patchEvent(editingId, {
-        title: values.title,
-        category: values.category,
-        description: values.description,
-        location: values.location,
-        date: values.date,
-        time: values.time,
-        imageUrl: values.imageUrl,
-        isFree: values.isFree,
-        ticketType: values.isFree ? 'free' : 'paid',
-        price: values.price,
-      })
-    } else {
-      await createEvent({
-        title: values.title,
-        category: values.category,
-        description: values.description,
-        location: values.location,
-        date: values.date,
-        time: values.time,
-        imageUrl: values.imageUrl,
-        isFree: values.isFree,
-        price: values.price,
-      })
+    try {
+      if (editingId) {
+        await patchEvent(editingId, {
+          title: values.title,
+          category: values.category,
+          description: values.description,
+          location: values.location,
+          date: values.date,
+          time: values.time,
+          imageUrl: values.imageUrl,
+          isFree: values.isFree,
+          ticketType: values.isFree ? 'free' : 'paid',
+          price: values.price,
+        })
+      } else {
+        await createEvent({
+          title: values.title,
+          category: values.category,
+          description: values.description,
+          location: values.location,
+          date: values.date,
+          time: values.time,
+          imageUrl: values.imageUrl,
+          isFree: values.isFree,
+          price: values.price,
+        })
+      }
+      await loadEvents()
+      showView('browse')
+      updateEventsView()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Request failed'
+      if (/sign in|session|401/i.test(msg)) {
+        openAuthModal({
+          onSuccess: () => {
+            postFormControls.resetToCreate()
+            showView('post')
+          },
+        })
+      } else {
+        window.alert(msg)
+      }
     }
-    await loadEvents()
-    showView('browse')
-    updateEventsView()
   },
 })
+
+function goToAddEvent() {
+  if (!getAccessToken()) {
+    openAuthModal({
+      onSuccess: () => {
+        postFormControls.resetToCreate()
+        showView('post')
+      },
+    })
+    return
+  }
+  postFormControls.resetToCreate()
+  showView('post')
+}
+
+initAuthModal({ onSessionChange: refreshAuthNav })
+
+async function openPostForEdit(eventId) {
+  closeEventDetail()
+  showView('post')
+  setPostPanelBusy(true, 'Loading event for editing…')
+  try {
+    let ev = allEvents.find((e) => e.id === eventId)
+    if (!ev?.startsAt) {
+      try {
+        ev = await fetchEventById(eventId)
+      } catch {
+        window.alert('Could not load event for editing.')
+        return
+      }
+    }
+    postFormControls.prefillForEdit(ev)
+  } finally {
+    setPostPanelBusy(false)
+  }
+}
 
 initEventDetail({
   onToggleSave: (id) => toggleSaved(id),
@@ -470,23 +556,11 @@ initEventDetail({
     openRegisterTicketModal({ eventId, eventTitle, isFree, price })
   },
   onEdit: async (eventId) => {
-    closeEventDetail()
-    showView('post')
-    setPostPanelBusy(true, 'Loading event for editing…')
-    try {
-      let ev = allEvents.find((e) => e.id === eventId)
-      if (!ev?.startsAt) {
-        try {
-          ev = await fetchEventById(eventId)
-        } catch {
-          window.alert('Could not load event for editing.')
-          return
-        }
-      }
-      postFormControls.prefillForEdit(ev)
-    } finally {
-      setPostPanelBusy(false)
+    if (!getAccessToken()) {
+      openAuthModal({ onSuccess: () => void openPostForEdit(eventId) })
+      return
     }
+    await openPostForEdit(eventId)
   },
   onDelete: async (eventId) => {
     if (!window.confirm('Delete this event permanently? This cannot be undone.')) return
@@ -499,7 +573,11 @@ initEventDetail({
       updateSavedView()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Delete failed'
-      window.alert(msg)
+      if (/sign in|session|401/i.test(msg)) {
+        openAuthModal({ onSuccess: () => {} })
+      } else {
+        window.alert(msg)
+      }
     } finally {
       setEventDetailActionsDisabled(false)
     }
@@ -532,7 +610,7 @@ async function openEventById(id) {
       event = await fetchEventById(id)
       const modalEl = document.querySelector('#event-detail-modal')
       if (!modalEl?.hidden) {
-        openEventDetail(event, savedEventIds.has(event.id))
+        openEventDetail(event, savedEventIds.has(event.id), { canManage: canManageEvent(event) })
       }
     } catch {
       closeEventDetail()
@@ -541,7 +619,7 @@ async function openEventById(id) {
     }
     return
   }
-  openEventDetail(event, savedEventIds.has(event.id))
+  openEventDetail(event, savedEventIds.has(event.id), { canManage: canManageEvent(event) })
 }
 
 document.querySelector('.main')?.addEventListener('click', (e) => {
@@ -581,9 +659,12 @@ document.querySelector('#nav-home')?.addEventListener('click', () => {
   postFormControls.resetToCreate()
   showView('browse')
 })
-document.querySelector('#nav-post')?.addEventListener('click', () => {
+document.querySelector('#nav-post')?.addEventListener('click', () => goToAddEvent())
+document.querySelector('#nav-signout')?.addEventListener('click', () => {
+  clearSession()
+  refreshAuthNav()
   postFormControls.resetToCreate()
-  showView('post')
+  showView('browse')
 })
 document.querySelector('#nav-saved')?.addEventListener('click', () => {
   postFormControls.resetToCreate()
@@ -597,3 +678,4 @@ document.querySelector('#logo-home')?.addEventListener('click', (e) => {
 })
 
 void loadEvents()
+void fetchMe().then(() => refreshAuthNav())

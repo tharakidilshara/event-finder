@@ -68,14 +68,13 @@ export async function getEventById(req, res) {
   res.json(toDetailItem(doc))
 }
 
-/** POST /api/events */
+/** POST /api/events — requires auth; organizer is always the signed-in user. */
 export async function createEvent(req, res) {
   const payload = assertValidCreateEvent(req.body)
-  if (payload.createdBy) {
-    const u = await User.findById(payload.createdBy).lean()
-    if (!u) {
-      throw new HttpError(400, 'createdBy user does not exist')
-    }
+  const userId = /** @type {{ id: string }} */ (req.user).id
+  const u = await User.findById(userId).lean()
+  if (!u) {
+    throw new HttpError(401, 'Your account is no longer valid')
   }
   const doc = await Event.create({
     title: payload.title,
@@ -86,7 +85,7 @@ export async function createEvent(req, res) {
     imageUrl: payload.imageUrl,
     isFree: payload.isFree,
     price: payload.price,
-    createdBy: payload.createdBy || undefined,
+    createdBy: new mongoose.Types.ObjectId(userId),
   })
   const created = await Event.findById(doc._id).populate('createdBy', 'name email').lean()
   res.status(201).json(toDetailItem(created))
@@ -96,13 +95,17 @@ export async function createEvent(req, res) {
 export async function updateEvent(req, res) {
   const { id } = req.params
   assertObjectId(id, 'event id')
-  const patch = assertValidPatchEvent(req.body)
-  if (patch.createdBy != null) {
-    const u = await User.findById(patch.createdBy).lean()
-    if (!u) {
-      throw new HttpError(400, 'createdBy user does not exist')
-    }
+  const userId = /** @type {{ id: string }} */ (req.user).id
+  const existing = await Event.findById(id).lean()
+  if (!existing) {
+    throw new HttpError(404, 'Event not found')
   }
+  const ownerId = existing.createdBy ? String(existing.createdBy) : null
+  if (!ownerId || ownerId !== userId) {
+    throw new HttpError(403, 'You can only edit your own events')
+  }
+  const patch = assertValidPatchEvent(req.body)
+  delete patch.createdBy
   const doc = await Event.findByIdAndUpdate(id, patch, {
     new: true,
     runValidators: true,
@@ -119,9 +122,15 @@ export async function updateEvent(req, res) {
 export async function deleteEvent(req, res) {
   const { id } = req.params
   assertObjectId(id, 'event id')
-  const deleted = await Event.findByIdAndDelete(id).lean()
-  if (!deleted) {
+  const userId = /** @type {{ id: string }} */ (req.user).id
+  const existing = await Event.findById(id).lean()
+  if (!existing) {
     throw new HttpError(404, 'Event not found')
   }
+  const ownerId = existing.createdBy ? String(existing.createdBy) : null
+  if (!ownerId || ownerId !== userId) {
+    throw new HttpError(403, 'You can only delete your own events')
+  }
+  await Event.findByIdAndDelete(id).lean()
   res.status(204).send()
 }

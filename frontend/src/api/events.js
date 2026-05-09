@@ -1,3 +1,5 @@
+import { authHeaders } from './auth.js'
+
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '')
 
 async function readErrorMessage(res) {
@@ -74,13 +76,12 @@ export async function fetchEventById(id) {
  *   imageUrl?: string,
  *   isFree: boolean,
  *   price: number,
- *   createdBy?: string,
  * }} payload
  */
 export async function createEvent(payload) {
   const res = await fetch(`${API_BASE}/api/events`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({
       title: payload.title,
       category: payload.category,
@@ -92,7 +93,6 @@ export async function createEvent(payload) {
       isFree: payload.isFree,
       ticketType: payload.isFree ? 'free' : 'paid',
       price: payload.price,
-      createdBy: payload.createdBy || undefined,
     }),
   })
   if (!res.ok) {
@@ -108,7 +108,7 @@ export async function createEvent(payload) {
 export async function patchEvent(id, patch) {
   const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(patch),
   })
   if (!res.ok) {
@@ -121,6 +121,7 @@ export async function patchEvent(id, patch) {
 export async function deleteEvent(id) {
   const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(id)}`, {
     method: 'DELETE',
+    headers: { ...authHeaders() },
   })
   if (res.status === 204) return
   if (!res.ok) {

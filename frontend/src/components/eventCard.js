@@ -12,6 +12,7 @@
  * @property {number} [price]
  * @property {string} [startsAt] - ISO datetime from API (for edit form)
  * @property {{ id: string, name: string, email: string } | null} [creator]
+ * @property {string} [creatorId] - organizer user id when known (list API)
  */
 
 function formatPriceLabel(value) {

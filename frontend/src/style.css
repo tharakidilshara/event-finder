@@ -138,6 +138,26 @@ button.nav__link {
   color: var(--text-muted);
 }
 
+.nav__user {
+  max-width: 10rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav__link--subtle {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.nav__link--subtle:hover {
+  color: var(--accent);
+}
+
 .main {
   flex: 1;
   display: flex;
@@ -1287,6 +1307,98 @@ button.nav__link {
 
 body.modal-open {
   overflow: hidden;
+}
+
+.modal__panel--narrow {
+  max-width: 22rem;
+  width: calc(100% - 2rem);
+}
+
+.modal--auth .modal__panel {
+  padding: 1.5rem 1.35rem 1.35rem;
+}
+
+.auth-modal__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.auth-modal__lede {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.auth-modal__error {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  color: #991b1b;
+  background: color-mix(in srgb, #fecaca 50%, var(--surface-elevated));
+  border-radius: 8px;
+}
+
+.auth-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.auth-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.auth-modal__field[hidden] {
+  display: none !important;
+}
+
+.auth-modal__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.auth-modal__input {
+  font: inherit;
+  font-size: 0.9375rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--heading);
+}
+
+.auth-modal__submit {
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.auth-modal__switch {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.auth-modal__link-btn {
+  font: inherit;
+  font-size: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-modal__link-btn:hover {
+  color: var(--accent-hot);
 }
 
 .modal[hidden] {

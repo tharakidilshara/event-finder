@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
       maxlength: 254,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
+    /** bcrypt hash; absent for legacy users until they set a password via register. */
+    passwordHash: { type: String, select: false, default: null },
   },
   { timestamps: true },
 )
