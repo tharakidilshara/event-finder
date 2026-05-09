@@ -10,6 +10,8 @@
  * @property {string} [imageUrl]
  * @property {boolean} [isFree]
  * @property {number} [price]
+ * @property {string} [startsAt] - ISO datetime from API (for edit form)
+ * @property {{ id: string, name: string, email: string } | null} [creator]
  */
 
 function formatPriceLabel(value) {
@@ -81,6 +83,9 @@ export function createEventCardElement(event, isSaved) {
 
   body.append(meta, title, when, where, desc)
 
+  const thumbCell = document.createElement('div')
+  thumbCell.className = 'event-card__thumb-cell'
+
   let thumb
   if (event.imageUrl) {
     thumb = document.createElement('img')
@@ -93,6 +98,7 @@ export function createEventCardElement(event, isSaved) {
     thumb.className = 'event-card__thumb event-card__thumb--placeholder'
     thumb.setAttribute('aria-hidden', 'true')
   }
+  thumbCell.appendChild(thumb)
 
   const saveBtn = document.createElement('button')
   saveBtn.type = 'button'
@@ -108,7 +114,7 @@ export function createEventCardElement(event, isSaved) {
   saveBtn.innerHTML = bookmarkIconSvg(isSaved)
   if (isSaved) saveBtn.classList.add('event-card__save--saved')
 
-  li.append(body, thumb, saveBtn)
+  li.append(body, thumbCell, saveBtn)
   return li
 }
 
@@ -122,4 +128,34 @@ export function renderEventCards(listElement, events, savedIds) {
   listElement.replaceChildren(
     ...events.map((event) => createEventCardElement(event, savedIds.has(event.id))),
   )
+}
+
+/**
+ * Placeholder rows while events are loading from the API.
+ * @param {HTMLUListElement} listElement
+ * @param {number} [count]
+ */
+export function renderEventSkeletons(listElement, count = 4) {
+  const n = Math.max(1, Math.min(8, count))
+  const items = []
+  for (let i = 0; i < n; i += 1) {
+    const li = document.createElement('li')
+    li.className = 'event-card event-card--skeleton'
+    li.setAttribute('role', 'presentation')
+    li.setAttribute('aria-hidden', 'true')
+    li.innerHTML = `
+      <div class="event-card__skeleton-body">
+        <div class="event-card__skeleton-chip"></div>
+        <div class="event-card__skeleton-line event-card__skeleton-line--lg"></div>
+        <div class="event-card__skeleton-line event-card__skeleton-line--md"></div>
+        <div class="event-card__skeleton-line event-card__skeleton-line--sm"></div>
+        <div class="event-card__skeleton-line event-card__skeleton-line--full"></div>
+      </div>
+      <div class="event-card__thumb-cell" aria-hidden="true">
+        <div class="event-card__skeleton-thumb"></div>
+      </div>
+    `
+    items.push(li)
+  }
+  listElement.replaceChildren(...items)
 }
