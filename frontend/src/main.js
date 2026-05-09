@@ -339,7 +339,7 @@ function showView(view) {
 document.querySelector('#app').innerHTML = `
   <div class="page">
     <header class="header">
-      <a class="logo" href="/" id="logo-home">Event Finder</a>
+      <a class="logo" href="/" id="logo-home">HittaEvent</a>
       <nav class="nav" aria-label="Main">
         <button type="button" class="nav__link nav__link--active" id="nav-home" aria-current="page">Home</button>
         <button type="button" class="nav__link" id="nav-post">Add Event</button>
@@ -451,7 +451,7 @@ document.querySelector('#app').innerHTML = `
     </main>
 
     <footer class="footer">
-      <!-- <p class="footer__text">Event Finder — simple home for your app shell.</p> -->
+      <!-- <p class="footer__text">HittaEvent</p> -->
     </footer>
   </div>
   ${getEventDetailMarkup()}
@@ -651,7 +651,7 @@ document.querySelector('.main')?.addEventListener('keydown', (e) => {
 initRegisterTicketModal({
   onSubmit(payload) {
     // Mock-only: no backend; handy for demos in DevTools console
-    console.info('[EventFinder mock booking]', payload)
+    console.info('[HittaEvent mock booking]', payload)
   },
 })
 

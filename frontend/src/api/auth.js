@@ -1,6 +1,6 @@
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '')
 
-const STORAGE_KEY = 'eventfinder_auth'
+const STORAGE_KEY = 'hittaevent_auth'
 
 /**
  * @typedef {{ id: string, name: string, email: string }} AuthUser
