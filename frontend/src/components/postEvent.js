@@ -6,10 +6,21 @@
 export function getPostEventMarkup() {
   return `
     <section class="post-panel" aria-labelledby="post-title">
-      <h2 id="post-title" class="saved-panel__title">Post an event</h2>
-      <p class="saved-panel__lede">Create a new event (shown in your list here; persist to the database when POST is wired).</p>
+      <div class="post-panel__busy" id="post-panel-busy" hidden aria-live="polite">
+        <span class="loading-spinner loading-spinner--accent" aria-hidden="true"></span>
+        <p class="post-panel__busy-text" id="post-panel-busy-text">Loading…</p>
+      </div>
 
+      <h2 id="post-title" class="saved-panel__title">Post an event</h2>
+      <p class="saved-panel__lede" id="post-panel-lede">Add a new campus event — saved to the database.</p>
+
+      <div class="post-form-stack">
       <form id="post-event-form" class="post-form">
+        <input type="hidden" id="post-editing-id" name="editingEventId" value="" />
+        <input type="hidden" id="post-existing-image-url" value="" />
+
+        <p class="post-form__error" id="post-form-error" hidden role="alert"></p>
+
         <div class="post-form__grid">
           <div class="post-form__field">
             <label class="post-form__label" for="post-title-input">Title</label>
@@ -81,11 +92,53 @@ export function getPostEventMarkup() {
 
         <div class="post-form__actions">
           <button type="button" class="btn btn--ghost" id="post-cancel-btn">Cancel</button>
-          <button type="submit" class="btn btn--primary">Post event</button>
+          <button type="submit" class="btn btn--primary" id="post-submit-btn">
+            <span class="btn__spinner" id="post-submit-spinner" hidden aria-hidden="true"></span>
+            <span id="post-submit-label">Post event</span>
+          </button>
         </div>
       </form>
+
+      <div class="post-form__overlay" id="post-form-overlay" hidden aria-hidden="true">
+        <span class="loading-spinner loading-spinner--lg loading-spinner--on-elevated" aria-hidden="true"></span>
+        <p class="post-form__overlay-text" id="post-form-overlay-text">Saving…</p>
+      </div>
+      </div>
     </section>
   `
+}
+
+/**
+ * Full-panel busy state (e.g. while fetching event data before edit prefill).
+ * @param {boolean} visible
+ * @param {string} [message]
+ */
+export function setPostPanelBusy(visible, message = 'Loading…') {
+  const el = document.querySelector('#post-panel-busy')
+  const text = document.querySelector('#post-panel-busy-text')
+  if (text && message) text.textContent = message
+  if (el) el.hidden = !visible
+}
+
+/**
+ * @param {string} iso
+ * @returns {string} YYYY-MM-DD local
+ */
+function isoToDateInput(iso) {
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/**
+ * @param {string} iso
+ * @returns {string} HH:mm local
+ */
+function isoToTimeInput(iso) {
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 /**
@@ -97,20 +150,19 @@ export function getPostEventMarkup() {
  * @property {string} time
  * @property {string} location
  * @property {string} description
- * @property {string} imageUrl - data: URL of the selected photo, or '' if none
+ * @property {string} imageUrl - data URL from file, existing URL, or ''
  * @property {boolean} isFree
  * @property {number} price - ticket price in USD; 0 when isFree is true
  */
 
 /**
  * Wire up the form submission, cancel button, and photo preview for the Post tab.
- * Caller decides what to do with the validated values (e.g. push into the
- * mock list and switch views) and how to handle cancel.
  *
  * @param {{
- *   onSubmit: (values: PostEventFormValues, form: HTMLFormElement) => void,
+ *   onSubmit: (values: PostEventFormValues, form: HTMLFormElement) => void | Promise<void>,
  *   onCancel?: () => void,
  * }} handlers
+ * @returns {{ resetToCreate: () => void, prefillForEdit: (apiEvent: Record<string, unknown>) => void }}
  */
 export function initPostEventForm({ onSubmit, onCancel }) {
   const form = /** @type {HTMLFormElement | null} */ (document.querySelector('#post-event-form'))
@@ -124,8 +176,29 @@ export function initPostEventForm({ onSubmit, onCancel }) {
   const ticketRadios = /** @type {NodeListOf<HTMLInputElement>} */ (
     document.querySelectorAll('input[name="ticketType"]')
   )
+  const submitBtn = /** @type {HTMLButtonElement | null} */ (document.querySelector('#post-submit-btn'))
+  const submitSpinner = document.querySelector('#post-submit-spinner')
+  const submitLabel = document.querySelector('#post-submit-label')
+  const formOverlay = document.querySelector('#post-form-overlay')
+  const formOverlayText = document.querySelector('#post-form-overlay-text')
+  const editingIdInput = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-editing-id'))
+  const existingImageInput = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-existing-image-url'))
+  const formError = document.querySelector('#post-form-error')
+  const panelTitle = document.querySelector('#post-title')
+  const panelLede = document.querySelector('#post-panel-lede')
 
   let imageDataUrl = ''
+
+  function setFormError(text) {
+    if (!formError) return
+    if (text) {
+      formError.textContent = text
+      formError.hidden = false
+    } else {
+      formError.textContent = ''
+      formError.hidden = true
+    }
+  }
 
   function clearImage() {
     imageDataUrl = ''
@@ -146,6 +219,75 @@ export function initPostEventForm({ onSubmit, onCancel }) {
     }
   }
 
+  function resetToCreate() {
+    if (editingIdInput) editingIdInput.value = ''
+    if (existingImageInput) existingImageInput.value = ''
+    clearImage()
+    form?.reset()
+    syncPriceFieldVisibility()
+    if (panelTitle) panelTitle.textContent = 'Post an event'
+    if (panelLede) {
+      panelLede.textContent = 'Add a new campus event — saved to the database.'
+    }
+    if (submitLabel) submitLabel.textContent = 'Post event'
+    setFormError('')
+  }
+
+  /**
+   * @param {Record<string, unknown>} apiEvent
+   */
+  function prefillForEdit(apiEvent) {
+    setFormError('')
+    const id = String(apiEvent.id ?? '')
+    if (editingIdInput) editingIdInput.value = id
+    const existingUrl = String(apiEvent.imageUrl ?? '').trim()
+    if (existingImageInput) existingImageInput.value = existingUrl
+
+    const titleIn = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-title-input'))
+    const catIn = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-category-input'))
+    const locIn = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-location-input'))
+    const descIn = /** @type {HTMLTextAreaElement | null} */ (document.querySelector('#post-desc-input'))
+    const dateIn = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-date-input'))
+    const timeIn = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-time-input'))
+
+    if (titleIn) titleIn.value = String(apiEvent.title ?? '')
+    if (catIn) catIn.value = String(apiEvent.category ?? '')
+    if (locIn) locIn.value = String(apiEvent.location ?? '')
+    if (descIn) descIn.value = String(apiEvent.description ?? '')
+
+    const startsAt = apiEvent.startsAt ? String(apiEvent.startsAt) : ''
+    if (startsAt && dateIn && timeIn) {
+      dateIn.value = isoToDateInput(startsAt)
+      timeIn.value = isoToTimeInput(startsAt)
+    }
+
+    const isFree = apiEvent.isFree !== false && !(Number(apiEvent.price) > 0)
+    ticketRadios.forEach((r) => {
+      r.checked = isFree ? r.value === 'free' : r.value === 'paid'
+    })
+    syncPriceFieldVisibility()
+    if (!isFree && priceInput) {
+      priceInput.value = String(Number(apiEvent.price) || '')
+    }
+
+    imageDataUrl = ''
+    if (fileInput) fileInput.value = ''
+    if (existingUrl && previewImg && previewWrap) {
+      previewImg.src = existingUrl
+      previewImg.alt = String(apiEvent.title ?? 'Event')
+      previewWrap.hidden = false
+    } else {
+      clearImage()
+      if (existingImageInput) existingImageInput.value = existingUrl
+    }
+
+    if (panelTitle) panelTitle.textContent = 'Edit event'
+    if (panelLede) {
+      panelLede.textContent = 'Update this listing, then save changes.'
+    }
+    if (submitLabel) submitLabel.textContent = 'Save changes'
+  }
+
   ticketRadios.forEach((radio) => {
     radio.addEventListener('change', syncPriceFieldVisibility)
   })
@@ -162,23 +304,26 @@ export function initPostEventForm({ onSubmit, onCancel }) {
       imageDataUrl = String(reader.result || '')
       if (previewImg) previewImg.src = imageDataUrl
       if (previewWrap) previewWrap.hidden = false
+      if (existingImageInput) existingImageInput.value = ''
     }
     reader.readAsDataURL(file)
   })
 
   removeBtn?.addEventListener('click', () => {
     clearImage()
+    if (existingImageInput) existingImageInput.value = ''
   })
 
   cancelBtn?.addEventListener('click', () => {
-    clearImage()
+    resetToCreate()
     onCancel?.()
   })
 
-  if (!form) return
+  if (!form) return { resetToCreate, prefillForEdit }
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault()
+    setFormError('')
 
     const fd = new FormData(form)
     const ticketType = String(fd.get('ticketType') || 'free')
@@ -187,6 +332,9 @@ export function initPostEventForm({ onSubmit, onCancel }) {
     const parsedPrice = Number(rawPrice)
     const price = isFree || !rawPrice || Number.isNaN(parsedPrice) ? 0 : Math.max(0, parsedPrice)
 
+    const existingImg = String(existingImageInput?.value ?? '').trim()
+    const pickedUrl = imageDataUrl || existingImg
+
     const values = {
       title: String(fd.get('title') || '').trim(),
       category: String(fd.get('category') || '').trim(),
@@ -194,7 +342,7 @@ export function initPostEventForm({ onSubmit, onCancel }) {
       time: String(fd.get('time') || '').trim(),
       location: String(fd.get('location') || '').trim(),
       description: String(fd.get('description') || '').trim(),
-      imageUrl: imageDataUrl,
+      imageUrl: pickedUrl,
       isFree,
       price,
     }
@@ -215,8 +363,32 @@ export function initPostEventForm({ onSubmit, onCancel }) {
       return
     }
 
-    onSubmit(values, form)
-    clearImage()
-    syncPriceFieldVisibility()
+    const isEditingPost = Boolean(document.querySelector('#post-editing-id')?.value?.trim())
+    if (submitBtn) submitBtn.disabled = true
+    if (submitSpinner) submitSpinner.hidden = false
+    if (formOverlay) {
+      formOverlay.hidden = false
+      if (formOverlayText) formOverlayText.textContent = isEditingPost ? 'Saving changes…' : 'Posting event…'
+    }
+    if (form) form.classList.add('post-form--submitting')
+    if (submitLabel) submitLabel.textContent = isEditingPost ? 'Saving…' : 'Posting…'
+
+    try {
+      await Promise.resolve(onSubmit(values, form))
+      resetToCreate()
+      clearImage()
+      syncPriceFieldVisibility()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong'
+      setFormError(msg)
+    } finally {
+      if (submitBtn) submitBtn.disabled = false
+      if (submitSpinner) submitSpinner.hidden = true
+      if (formOverlay) formOverlay.hidden = true
+      if (form) form.classList.remove('post-form--submitting')
+      if (submitLabel) submitLabel.textContent = isEditingPost ? 'Save changes' : 'Post event'
+    }
   })
+
+  return { resetToCreate, prefillForEdit }
 }

@@ -36,6 +36,11 @@ export function getEventDetailMarkup() {
             <path d="m6 6 12 12" />
           </svg>
         </button>
+        <div class="modal__panel-main">
+        <div class="modal__fetch-overlay" id="event-detail-loading" hidden aria-hidden="true">
+          <span class="loading-spinner loading-spinner--lg" aria-hidden="true"></span>
+          <p class="modal__fetch-text">Loading event…</p>
+        </div>
         <div class="modal__media">
           <img class="modal__image" id="event-detail-image" alt="" />
           <p class="modal__no-image" id="event-detail-no-image" hidden>No photo provided</p>
@@ -49,22 +54,48 @@ export function getEventDetailMarkup() {
           <p class="modal__when" id="event-detail-when"></p>
           <p class="modal__where" id="event-detail-where"></p>
           <p class="modal__desc" id="event-detail-desc"></p>
+          <p class="modal__organizer" id="event-detail-organizer" hidden></p>
           <p class="modal__notice" id="event-detail-notice" role="status" hidden></p>
-          <div class="modal__actions">
+          <div class="modal__actions modal__actions--wrap">
             <button type="button" class="btn btn--ghost" data-action="close-detail">Close</button>
             <button type="button" class="btn btn--ghost modal__save" id="event-detail-save" data-action="toggle-save">
               <span class="modal__save-icon" id="event-detail-save-icon"></span>
               <span class="modal__save-label" id="event-detail-save-label">Save event</span>
             </button>
+            <button type="button" class="btn btn--ghost" data-action="edit-event">Edit</button>
+            <button type="button" class="btn btn--ghost modal__delete" data-action="delete-event">Delete</button>
             <button type="button" class="btn btn--primary modal__buy" id="event-detail-buy" data-action="buy-ticket">
               <span class="modal__buy-icon" id="event-detail-buy-icon" aria-hidden="true"></span>
               <span class="modal__buy-label" id="event-detail-buy-label">Buy ticket</span>
             </button>
           </div>
         </div>
+        </div>
       </div>
     </div>
   `
+}
+
+/** Show / hide full-panel overlay while fetching a single event. */
+export function setEventDetailFetchLoading(visible) {
+  const el = document.querySelector('#event-detail-loading')
+  const modal = document.querySelector('#event-detail-modal')
+  if (!el) return
+  el.hidden = !visible
+  el.setAttribute('aria-busy', visible ? 'true' : 'false')
+  if (modal) modal.setAttribute('aria-busy', visible ? 'true' : 'false')
+}
+
+/** Disable primary actions (e.g. during delete). */
+export function setEventDetailActionsDisabled(disabled) {
+  const modal = document.querySelector('#event-detail-modal')
+  if (!modal) return
+  modal.querySelectorAll('.modal__actions button').forEach((btn) => {
+    if (btn instanceof HTMLButtonElement) {
+      btn.disabled = disabled
+      btn.classList.toggle('btn--busy', disabled)
+    }
+  })
 }
 
 let currentEventId = ''
@@ -131,6 +162,8 @@ export function openEventDetail(event, isSaved) {
   const modal = document.querySelector('#event-detail-modal')
   if (!modal) return
 
+  setEventDetailFetchLoading(false)
+
   currentEventId = event.id
   currentEventIsFree = event.isFree !== false && !(Number(event.price) > 0)
   currentEventPrice = Number(event.price) > 0 ? Number(event.price) : 0
@@ -162,6 +195,18 @@ export function openEventDetail(event, isSaved) {
   if (where) where.textContent = event.location
   if (desc) desc.textContent = event.description
 
+  const organizer = document.querySelector('#event-detail-organizer')
+  if (organizer) {
+    const c = /** @type {{ name?: string } | null | undefined} */ (event.creator)
+    if (c && typeof c === 'object' && c.name) {
+      organizer.textContent = `Hosted by ${c.name}`
+      organizer.hidden = false
+    } else {
+      organizer.textContent = ''
+      organizer.hidden = true
+    }
+  }
+
   setSaveButtonState(isSaved)
   setBuyButtonState(currentEventIsFree, currentEventPrice)
   setNotice('')
@@ -176,6 +221,8 @@ export function openEventDetail(event, isSaved) {
 export function closeEventDetail() {
   const modal = document.querySelector('#event-detail-modal')
   if (!modal) return
+  setEventDetailFetchLoading(false)
+  setEventDetailActionsDisabled(false)
   modal.hidden = true
   document.body.classList.remove('modal-open')
   setNotice('')
@@ -192,10 +239,12 @@ export function closeEventDetail() {
  *     isFree: boolean,
  *     price: number,
  *   }) => void,
+ *   onEdit?: (eventId: string) => void,
+ *   onDelete?: (eventId: string) => void | Promise<void>,
  * }} handlers - `onToggleSave` should toggle the saved set and return the new
  *               isSaved boolean so the modal can refresh its button state.
  */
-export function initEventDetail({ onToggleSave, onBuyOrRegister }) {
+export function initEventDetail({ onToggleSave, onBuyOrRegister, onEdit, onDelete }) {
   const modal = document.querySelector('#event-detail-modal')
   if (!modal) return
 
@@ -226,6 +275,18 @@ export function initEventDetail({ onToggleSave, onBuyOrRegister }) {
         isFree: currentEventIsFree,
         price: currentEventPrice,
       })
+      return
+    }
+
+    if (target.closest('[data-action="edit-event"]')) {
+      if (!currentEventId) return
+      onEdit?.(currentEventId)
+      return
+    }
+
+    if (target.closest('[data-action="delete-event"]')) {
+      if (!currentEventId) return
+      void Promise.resolve(onDelete?.(currentEventId))
     }
   })
 
