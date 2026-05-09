@@ -189,6 +189,23 @@ async function runBrowseSearchQuery() {
   if (rid === searchRequestId) updateEventsView()
 }
 
+/**
+ * @param {HTMLElement} loadingBlock
+ * @param {'initial' | 'more'} mode
+ */
+function setBrowseLoadingCopy(loadingBlock, mode) {
+  const loadingLabel = loadingBlock.querySelector('.events__loading-label')
+  const loadingHint = loadingBlock.querySelector('.events__loading-hint')
+  if (!loadingLabel || !loadingHint) return
+  if (mode === 'more') {
+    loadingLabel.textContent = 'Loading more…'
+    loadingHint.textContent = 'Fetching additional events.'
+  } else {
+    loadingLabel.textContent = 'Loading events…'
+    loadingHint.textContent = 'Hang tight while we fetch the latest listings.'
+  }
+}
+
 function updateEventsView() {
   const searchInput = document.querySelector('#event-search')
   const eventsListEl = document.querySelector('#mock-events-list')
@@ -197,11 +214,13 @@ function updateEventsView() {
   const loadMoreBtn = document.querySelector('#events-load-more-btn')
   if (!searchInput || !eventsListEl || !emptyMsg || !loadingBlock) return
 
-  searchInput.toggleAttribute('disabled', eventsLoading)
-  searchInput.setAttribute('aria-busy', eventsLoading ? 'true' : 'false')
+  const busy = eventsLoading || loadMoreBusy
+  searchInput.toggleAttribute('disabled', busy)
+  searchInput.setAttribute('aria-busy', busy ? 'true' : 'false')
 
   if (eventsLoading) {
     loadingBlock.hidden = false
+    setBrowseLoadingCopy(loadingBlock, 'initial')
     emptyMsg.classList.remove('events__empty--error')
     renderEventSkeletons(eventsListEl, 4)
     emptyMsg.hidden = true
@@ -214,6 +233,7 @@ function updateEventsView() {
 
   if (eventsError) {
     loadingBlock.hidden = true
+    setBrowseLoadingCopy(loadingBlock, 'initial')
     eventsListEl.replaceChildren()
     emptyMsg.textContent = eventsError
     emptyMsg.classList.add('events__empty--error')
@@ -225,7 +245,24 @@ function updateEventsView() {
     return
   }
 
+  if (loadMoreBusy) {
+    loadingBlock.hidden = false
+    setBrowseLoadingCopy(loadingBlock, 'more')
+    emptyMsg.classList.remove('events__empty--error')
+    renderEventCards(eventsListEl, events, savedEventIds)
+    emptyMsg.hidden = true
+    if (loadMoreBtn) {
+      const hasQuery = searchInput.value.trim().length > 0
+      const hasMore = hasQuery ? searchHasMore : browseHasMore
+      loadMoreBtn.hidden = !hasMore
+      loadMoreBtn.disabled = true
+      loadMoreBtn.textContent = 'Loading…'
+    }
+    return
+  }
+
   loadingBlock.hidden = true
+  setBrowseLoadingCopy(loadingBlock, 'initial')
   emptyMsg.classList.remove('events__empty--error')
 
   renderEventCards(eventsListEl, events, savedEventIds)
