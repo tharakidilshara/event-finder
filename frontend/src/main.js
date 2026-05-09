@@ -1,4 +1,5 @@
 import './style.css'
+import { fetchEvents } from './api/events.js'
 import { renderEventCards } from './components/eventCard.js'
 import { getPostEventMarkup, initPostEventForm } from './components/postEvent.js'
 import {
@@ -14,52 +15,11 @@ import {
 
 const savedEventIds = new Set()
 
-let mockEvents = [
-  {
-    id: 'evt-orientation-mixer',
-    title: 'Orientation mixer',
-    dateLabel: 'Sat, 12 Oct · 5:00 PM',
-    location: 'Student Union lawn',
-    category: 'Social',
-    description: 'Meet clubs, grab snacks, and find your people before term gets busy.',
-    imageUrl: 'https://picsum.photos/seed/orientation-mixer/800/450',
-    isFree: true,
-    price: 0,
-  },
-  {
-    id: 'evt-career-fair-tech',
-    title: 'Career fair: tech & design',
-    dateLabel: 'Wed, 16 Oct · 10:00 AM',
-    location: 'Sports hall',
-    category: 'Careers',
-    description: 'Employers hiring interns and grads—bring your CV or portfolio link.',
-    imageUrl: 'https://picsum.photos/seed/career-fair-tech/800/450',
-    isFree: true,
-    price: 0,
-  },
-  {
-    id: 'evt-film-night-classics',
-    title: 'Film night: classics',
-    dateLabel: 'Fri, 18 Oct · 8:00 PM',
-    location: 'Lecture theatre B',
-    category: 'Arts',
-    description: 'Open to all; short intro talk then a restored 35mm screening.',
-    imageUrl: 'https://picsum.photos/seed/film-night-classics/800/450',
-    isFree: false,
-    price: 5,
-  },
-  {
-    id: 'evt-beginner-yoga',
-    title: 'Beginner yoga',
-    dateLabel: 'Mon, 21 Oct · 7:30 AM',
-    location: 'Wellness studio',
-    category: 'Wellness',
-    description: 'Mats provided. Register on the door if spaces remain.',
-    imageUrl: 'https://picsum.photos/seed/beginner-yoga/800/450',
-    isFree: false,
-    price: 8,
-  },
-]
+/** @type {Array<{ id: string, title: string, dateLabel: string, location: string, category: string, description: string, imageUrl?: string, isFree?: boolean, price?: number }>} */
+let events = []
+let eventsLoading = false
+/** @type {string | null} */
+let eventsError = null
 
 function createEventId(title) {
   const base = String(title || '')
@@ -82,26 +42,71 @@ function formatDateLabel(dateStr, timeStr) {
 
 function filterEvents(query) {
   const q = query.trim().toLowerCase()
-  if (!q) return mockEvents
-  return mockEvents.filter((e) => {
+  if (!q) return events
+  return events.filter((e) => {
     const blob = `${e.title} ${e.dateLabel} ${e.location} ${e.category} ${e.description}`.toLowerCase()
     return blob.includes(q)
   })
+}
+
+async function loadEvents() {
+  eventsLoading = true
+  eventsError = null
+  updateEventsView()
+  try {
+    events = await fetchEvents()
+    eventsError = null
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Something went wrong'
+    eventsError = message
+  } finally {
+    eventsLoading = false
+    updateEventsView()
+  }
 }
 
 function updateEventsView() {
   const searchInput = document.querySelector('#event-search')
   const eventsListEl = document.querySelector('#mock-events-list')
   const emptyMsg = document.querySelector('#events-empty-msg')
-  if (!searchInput || !eventsListEl || !emptyMsg) return
+  const loadingMsg = document.querySelector('#events-loading-msg')
+  const errorWrap = document.querySelector('#events-error-msg')
+  const errorText = document.querySelector('#events-error-text')
+  if (!searchInput || !eventsListEl || !emptyMsg || !loadingMsg || !errorWrap || !errorText) return
+
+  if (eventsLoading) {
+    loadingMsg.hidden = false
+    errorWrap.hidden = true
+    eventsListEl.replaceChildren()
+    emptyMsg.hidden = true
+    return
+  }
+
+  if (eventsError) {
+    loadingMsg.hidden = true
+    errorWrap.hidden = false
+    errorText.textContent = eventsError
+    eventsListEl.replaceChildren()
+    emptyMsg.hidden = true
+    return
+  }
+
+  loadingMsg.hidden = true
+  errorWrap.hidden = true
 
   const filtered = filterEvents(searchInput.value)
   renderEventCards(eventsListEl, filtered, savedEventIds)
+  const hasQuery = searchInput.value.trim().length > 0
+  emptyMsg.textContent = hasQuery
+    ? 'No events match your search.'
+    : events.length === 0
+      ? 'No events yet. Add one from the menu or seed your database.'
+      : 'No events match your search.'
   emptyMsg.hidden = filtered.length > 0
 }
 
 function getSavedEvents() {
-  return mockEvents.filter((e) => savedEventIds.has(e.id))
+  return events.filter((e) => savedEventIds.has(e.id))
 }
 
 function updateSavedView() {
@@ -208,6 +213,11 @@ document.querySelector('#app').innerHTML = `
       </section>
 
       <section class="events" id="mock-events-section" hidden aria-labelledby="mock-events-title">
+        <p class="events__status events__loading" id="events-loading-msg" hidden role="status">Loading events…</p>
+        <div class="events__status events__error" id="events-error-msg" hidden role="alert">
+          <p class="events__error-text" id="events-error-text"></p>
+          <button type="button" class="btn btn--ghost events__retry" id="events-retry-btn">Retry</button>
+        </div>
         <p class="events__empty" id="events-empty-msg" hidden role="status">No events match your search.</p>
         <ul class="events__list" id="mock-events-list"></ul>
       </section>
@@ -263,6 +273,9 @@ const exploreBtn = document.querySelector('#explore-events-btn')
 const eventsSection = document.querySelector('#mock-events-section')
 
 document.querySelector('#event-search')?.addEventListener('input', updateEventsView)
+document.querySelector('#events-retry-btn')?.addEventListener('click', () => {
+  void loadEvents()
+})
 
 function toggleSaved(id) {
   if (!id) return false
@@ -278,7 +291,7 @@ function toggleSaved(id) {
 
 function openEventById(id) {
   if (!id) return
-  const event = mockEvents.find((ev) => ev.id === id)
+  const event = events.find((ev) => ev.id === id)
   if (!event) return
   openEventDetail(event, savedEventIds.has(event.id))
 }
@@ -347,7 +360,7 @@ initPostEventForm({
       price: values.price,
     }
 
-    mockEvents = [newEvent, ...mockEvents]
+    events = [newEvent, ...events]
     form.reset()
 
     showView('browse')
@@ -363,3 +376,5 @@ exploreBtn?.addEventListener('click', () => {
   eventsSection.hidden = false
   eventsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
+
+void loadEvents()

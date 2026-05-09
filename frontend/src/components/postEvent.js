@@ -7,7 +7,7 @@ export function getPostEventMarkup() {
   return `
     <section class="post-panel" aria-labelledby="post-title">
       <h2 id="post-title" class="saved-panel__title">Post an event</h2>
-      <p class="saved-panel__lede">Create a new event (mock only — no database yet).</p>
+      <p class="saved-panel__lede">Create a new event (shown in your list here; persist to the database when POST is wired).</p>
 
       <form id="post-event-form" class="post-form">
         <div class="post-form__grid">

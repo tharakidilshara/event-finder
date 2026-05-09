@@ -516,6 +516,40 @@ button.nav__link {
   border-radius: 12px;
 }
 
+.events__status {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  border-radius: 12px;
+}
+
+.events__loading {
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface-elevated) 90%, transparent);
+  border: 1px solid var(--border-strong);
+}
+
+.events__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--heading);
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+  border: 1px solid color-mix(in srgb, #c45 35%, var(--border-strong));
+}
+
+.events__error-text {
+  margin: 0;
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.events__retry {
+  flex-shrink: 0;
+}
+
 .events__list {
   list-style: none;
   margin: 0;

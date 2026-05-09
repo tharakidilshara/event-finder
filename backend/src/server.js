@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import express from 'express'
 import mongoose from 'mongoose'
+import eventRoutes from './routes/eventRoutes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Always load backend/.env even if Node was started from the repo root
@@ -22,6 +23,8 @@ app.get('/api/health', (_req, res) => {
     mongo: mongoose.connection.readyState === 1 ? 'connected' : mongoose.connection.readyState,
   })
 })
+
+app.use('/api/events', eventRoutes)
 
 async function main() {
   const uri = process.env.MONGODB_URI
