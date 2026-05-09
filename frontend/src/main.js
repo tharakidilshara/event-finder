@@ -6,6 +6,11 @@ import {
   initEventDetail,
   openEventDetail,
 } from './components/eventDetail.js'
+import {
+  getRegisterTicketMarkup,
+  initRegisterTicketModal,
+  openRegisterTicketModal,
+} from './components/registerTicket.js'
 
 const savedEventIds = new Set()
 
@@ -18,6 +23,8 @@ let mockEvents = [
     category: 'Social',
     description: 'Meet clubs, grab snacks, and find your people before term gets busy.',
     imageUrl: 'https://picsum.photos/seed/orientation-mixer/800/450',
+    isFree: true,
+    price: 0,
   },
   {
     id: 'evt-career-fair-tech',
@@ -27,6 +34,8 @@ let mockEvents = [
     category: 'Careers',
     description: 'Employers hiring interns and grads—bring your CV or portfolio link.',
     imageUrl: 'https://picsum.photos/seed/career-fair-tech/800/450',
+    isFree: true,
+    price: 0,
   },
   {
     id: 'evt-film-night-classics',
@@ -36,6 +45,8 @@ let mockEvents = [
     category: 'Arts',
     description: 'Open to all; short intro talk then a restored 35mm screening.',
     imageUrl: 'https://picsum.photos/seed/film-night-classics/800/450',
+    isFree: false,
+    price: 5,
   },
   {
     id: 'evt-beginner-yoga',
@@ -45,6 +56,8 @@ let mockEvents = [
     category: 'Wellness',
     description: 'Mats provided. Register on the door if spaces remain.',
     imageUrl: 'https://picsum.photos/seed/beginner-yoga/800/450',
+    isFree: false,
+    price: 8,
   },
 ]
 
@@ -243,6 +256,7 @@ document.querySelector('#app').innerHTML = `
     </footer>
   </div>
   ${getEventDetailMarkup()}
+  ${getRegisterTicketMarkup()}
 `
 
 const exploreBtn = document.querySelector('#explore-events-btn')
@@ -295,8 +309,18 @@ document.querySelector('.main')?.addEventListener('keydown', (e) => {
   openEventById(card.dataset.eventId)
 })
 
+initRegisterTicketModal({
+  onSubmit(payload) {
+    // Mock-only: no backend; handy for demos in DevTools console
+    console.info('[EventFinder mock booking]', payload)
+  },
+})
+
 initEventDetail({
   onToggleSave: (id) => toggleSaved(id),
+  onBuyOrRegister: ({ eventId, eventTitle, isFree, price }) => {
+    openRegisterTicketModal({ eventId, eventTitle, isFree, price })
+  },
 })
 
 document.querySelector('#nav-home')?.addEventListener('click', () => showView('browse'))
@@ -319,6 +343,8 @@ initPostEventForm({
       category: values.category,
       description: values.description,
       imageUrl: values.imageUrl,
+      isFree: values.isFree,
+      price: values.price,
     }
 
     mockEvents = [newEvent, ...mockEvents]

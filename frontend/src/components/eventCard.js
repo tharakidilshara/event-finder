@@ -8,7 +8,15 @@
  * @property {string} category
  * @property {string} description
  * @property {string} [imageUrl]
+ * @property {boolean} [isFree]
+ * @property {number} [price]
  */
+
+function formatPriceLabel(value) {
+  const n = Number(value || 0)
+  if (!Number.isFinite(n) || n <= 0) return '$0'
+  return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`
+}
 
 function bookmarkIconSvg(isFilled) {
   if (isFilled) {
@@ -46,6 +54,14 @@ export function createEventCardElement(event, isSaved) {
   category.className = 'event-card__category'
   category.textContent = event.category
   meta.appendChild(category)
+
+  const isFree = event.isFree !== false && !(Number(event.price) > 0)
+  const priceTag = document.createElement('span')
+  priceTag.className = `event-card__price ${
+    isFree ? 'event-card__price--free' : 'event-card__price--paid'
+  }`
+  priceTag.textContent = isFree ? 'Free' : formatPriceLabel(event.price)
+  meta.appendChild(priceTag)
 
   const title = document.createElement('h3')
   title.className = 'event-card__title'

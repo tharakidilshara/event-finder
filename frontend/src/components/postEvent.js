@@ -37,6 +37,34 @@ export function getPostEventMarkup() {
           </div>
 
           <div class="post-form__field post-form__field--full">
+            <span class="post-form__label">Ticket type</span>
+            <div class="post-form__radio-group" role="radiogroup" aria-label="Ticket type">
+              <label class="post-form__radio">
+                <input type="radio" name="ticketType" value="free" checked />
+                <span class="post-form__radio-label">Free</span>
+              </label>
+              <label class="post-form__radio">
+                <input type="radio" name="ticketType" value="paid" />
+                <span class="post-form__radio-label">Paid</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="post-form__field post-form__field--full" id="post-price-field" hidden>
+            <label class="post-form__label" for="post-price-input">Ticket price (USD)</label>
+            <input
+              class="post-form__input"
+              id="post-price-input"
+              name="price"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="e.g. 12.50"
+            />
+          </div>
+
+          <div class="post-form__field post-form__field--full">
             <label class="post-form__label" for="post-image-input">Photo <span class="post-form__hint">(optional)</span></label>
             <input class="post-form__file" id="post-image-input" name="image" type="file" accept="image/*" />
             <div class="post-form__preview" id="post-image-preview" hidden>
@@ -70,6 +98,8 @@ export function getPostEventMarkup() {
  * @property {string} location
  * @property {string} description
  * @property {string} imageUrl - data: URL of the selected photo, or '' if none
+ * @property {boolean} isFree
+ * @property {number} price - ticket price in USD; 0 when isFree is true
  */
 
 /**
@@ -89,6 +119,11 @@ export function initPostEventForm({ onSubmit, onCancel }) {
   const previewWrap = document.querySelector('#post-image-preview')
   const previewImg = /** @type {HTMLImageElement | null} */ (document.querySelector('#post-image-preview-img'))
   const removeBtn = document.querySelector('#post-image-remove')
+  const priceField = document.querySelector('#post-price-field')
+  const priceInput = /** @type {HTMLInputElement | null} */ (document.querySelector('#post-price-input'))
+  const ticketRadios = /** @type {NodeListOf<HTMLInputElement>} */ (
+    document.querySelectorAll('input[name="ticketType"]')
+  )
 
   let imageDataUrl = ''
 
@@ -98,6 +133,23 @@ export function initPostEventForm({ onSubmit, onCancel }) {
     if (previewImg) previewImg.removeAttribute('src')
     if (previewWrap) previewWrap.hidden = true
   }
+
+  function syncPriceFieldVisibility() {
+    const selected = /** @type {HTMLInputElement | undefined} */ (
+      Array.from(ticketRadios).find((r) => r.checked)
+    )
+    const isPaid = selected?.value === 'paid'
+    if (priceField) priceField.hidden = !isPaid
+    if (priceInput) {
+      priceInput.required = isPaid
+      if (!isPaid) priceInput.value = ''
+    }
+  }
+
+  ticketRadios.forEach((radio) => {
+    radio.addEventListener('change', syncPriceFieldVisibility)
+  })
+  syncPriceFieldVisibility()
 
   fileInput?.addEventListener('change', () => {
     const file = fileInput.files?.[0]
@@ -129,6 +181,12 @@ export function initPostEventForm({ onSubmit, onCancel }) {
     e.preventDefault()
 
     const fd = new FormData(form)
+    const ticketType = String(fd.get('ticketType') || 'free')
+    const isFree = ticketType !== 'paid'
+    const rawPrice = String(fd.get('price') || '').trim()
+    const parsedPrice = Number(rawPrice)
+    const price = isFree || !rawPrice || Number.isNaN(parsedPrice) ? 0 : Math.max(0, parsedPrice)
+
     const values = {
       title: String(fd.get('title') || '').trim(),
       category: String(fd.get('category') || '').trim(),
@@ -137,6 +195,8 @@ export function initPostEventForm({ onSubmit, onCancel }) {
       location: String(fd.get('location') || '').trim(),
       description: String(fd.get('description') || '').trim(),
       imageUrl: imageDataUrl,
+      isFree,
+      price,
     }
 
     if (
@@ -150,7 +210,13 @@ export function initPostEventForm({ onSubmit, onCancel }) {
       return
     }
 
+    if (!isFree && !(price > 0)) {
+      priceInput?.focus()
+      return
+    }
+
     onSubmit(values, form)
     clearImage()
+    syncPriceFieldVisibility()
   })
 }
