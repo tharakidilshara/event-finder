@@ -16,6 +16,7 @@ const eventSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     isFree: { type: Boolean, default: true },
     price: { type: Number, default: 0, min: 0 },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true },
 )

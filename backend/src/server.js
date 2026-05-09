@@ -4,7 +4,10 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import express from 'express'
 import mongoose from 'mongoose'
+import { HttpError } from './middleware/httpError.js'
+import { errorHandler } from './middleware/errorHandler.js'
 import eventRoutes from './routes/eventRoutes.js'
+import userRoutes from './routes/userRoutes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Always load backend/.env even if Node was started from the repo root
@@ -25,6 +28,13 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api/events', eventRoutes)
+app.use('/api/users', userRoutes)
+
+app.use((_req, _res, next) => {
+  next(new HttpError(404, 'Not found'))
+})
+
+app.use(errorHandler)
 
 async function main() {
   const uri = process.env.MONGODB_URI
