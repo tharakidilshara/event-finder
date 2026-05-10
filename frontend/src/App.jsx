@@ -44,6 +44,8 @@ export default function App() {
 
   const browseBufferRef = useRef(/** @type {object[]} */ ([]))
   const authSuccessRef = useRef(/** @type {null | (() => void)} */ (null))
+  /** After Add Event / edit: return to browse, saved, or my events (not post). */
+  const postReturnTargetRef = useRef(/** @type {'browse' | 'saved' | 'mine'} */ ('browse'))
 
   const refreshSavedList = useCallback(async () => {
     if (!getAccessToken()) {
@@ -191,22 +193,37 @@ export default function App() {
 
   const goBrowse = useCallback(() => {
     setEditEvent(null)
+    postReturnTargetRef.current = 'browse'
     setView('browse')
   }, [])
 
+  /** Leave post/create form: go back to the tab that opened it (Home, Saved, or My events). */
+  const navigateAfterPost = useCallback(() => {
+    setEditEvent(null)
+    const t = postReturnTargetRef.current
+    postReturnTargetRef.current = 'browse'
+    if (t === 'saved') setView('saved')
+    else if (t === 'mine') setView('mine')
+    else setView('browse')
+  }, [])
+
   const goPost = useCallback(() => {
+    const returnTo = view === 'saved' ? 'saved' : view === 'mine' ? 'mine' : 'browse'
+    const enterPost = () => {
+      postReturnTargetRef.current = returnTo
+      setEditEvent(null)
+      setView('post')
+    }
     if (!getAccessToken()) {
       openAuth({
         onSuccess: () => {
-          setEditEvent(null)
-          setView('post')
+          enterPost()
         },
       })
       return
     }
-    setEditEvent(null)
-    setView('post')
-  }, [openAuth])
+    enterPost()
+  }, [openAuth, view])
 
   const goSaved = useCallback(() => {
     setEditEvent(null)
@@ -235,6 +252,7 @@ export default function App() {
     setMyPublishedEvents([])
     setMyPublishedError(null)
     setEditEvent(null)
+    postReturnTargetRef.current = 'browse'
     setView('browse')
   }, [])
 
@@ -275,6 +293,7 @@ export default function App() {
   }, [deleteConfirm, closeDetail, afterMutation, refreshSavedList, openAuth])
 
   const handleEditMyEvent = useCallback((eventId) => {
+    postReturnTargetRef.current = 'mine'
     setView('post')
     setPostPrefetchBusy(true)
     void (async () => {
@@ -346,11 +365,11 @@ export default function App() {
               onClearEdit={() => setEditEvent(null)}
               onCancel={() => {
                 setEditEvent(null)
-                goBrowse()
+                navigateAfterPost()
               }}
               onDone={() => {
                 setEditEvent(null)
-                goBrowse()
+                navigateAfterPost()
                 afterMutation()
               }}
             />
@@ -375,6 +394,8 @@ export default function App() {
         }}
         onEdit={() => {
           if (!detailEvent) return
+          const returnTo = view === 'saved' ? 'saved' : view === 'mine' ? 'mine' : 'browse'
+          postReturnTargetRef.current = returnTo
           closeDetail()
           setView('post')
           setPostPrefetchBusy(true)
