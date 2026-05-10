@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { FALLBACK_EVENT_IMAGE } from '../constants/eventImages.js'
+
 function BookmarkIcon({ filled }) {
   if (filled) {
     return (
@@ -16,6 +19,14 @@ function BookmarkIcon({ filled }) {
 /** @param {{ event: object, isSaved: boolean, onOpen: () => void, onToggleSave: (e: { stopPropagation: () => void }) => void, hideSave?: boolean, onEdit?: () => void, onDelete?: () => void }} props */
 export default function EventCard({ event, isSaved, onOpen, onToggleSave, hideSave = false, onEdit, onDelete }) {
   const priceLabel = event.isFree ? 'Free' : `$${Number(event.price) > 0 ? event.price : 0}`
+  const [thumbSrc, setThumbSrc] = useState(() => {
+    const u = String(event.imageUrl ?? '').trim()
+    return u || FALLBACK_EVENT_IMAGE
+  })
+  useEffect(() => {
+    const u = String(event.imageUrl ?? '').trim()
+    setThumbSrc(u || FALLBACK_EVENT_IMAGE)
+  }, [event.id, event.imageUrl])
 
   return (
     <li
@@ -76,11 +87,13 @@ export default function EventCard({ event, isSaved, onOpen, onToggleSave, hideSa
         ) : null}
       </div>
       <div className="event-card__thumb-cell">
-        {event.imageUrl ? (
-          <img className="event-card__thumb" src={event.imageUrl} alt="" loading="lazy" />
-        ) : (
-          <div className="event-card__thumb event-card__thumb--placeholder" aria-hidden="true" />
-        )}
+        <img
+          className="event-card__thumb"
+          src={thumbSrc}
+          alt=""
+          loading="lazy"
+          onError={() => setThumbSrc(FALLBACK_EVENT_IMAGE)}
+        />
       </div>
       {!hideSave ? (
         <button

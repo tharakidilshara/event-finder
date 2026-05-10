@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { FALLBACK_EVENT_IMAGE } from '../constants/eventImages.js'
 
 function formatPrice(value) {
   const n = Number(value || 0)
@@ -39,12 +40,19 @@ export default function EventDetailModal({
     const onKey = (e) => {
       if (e.key !== 'Escape') return
       const reg = document.querySelector('#register-ticket-modal')
-      if (reg && !reg.hidden) return
+      if (reg instanceof HTMLElement && !reg.hidden) return
       onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  const [detailImgSrc, setDetailImgSrc] = useState(FALLBACK_EVENT_IMAGE)
+  useEffect(() => {
+    if (!event) return
+    const u = String(event.imageUrl ?? '').trim()
+    setDetailImgSrc(u || FALLBACK_EVENT_IMAGE)
+  }, [event?.id, event?.imageUrl])
 
   if (!open) return null
 
@@ -69,13 +77,13 @@ export default function EventDetailModal({
           {event && (
             <>
               <div className="modal__media">
-                {event.imageUrl ? (
-                  <img className="modal__image" id="event-detail-image" src={event.imageUrl} alt={event.title} />
-                ) : (
-                  <p className="modal__no-image" id="event-detail-no-image">
-                    No photo provided
-                  </p>
-                )}
+                <img
+                  className="modal__image"
+                  id="event-detail-image"
+                  src={detailImgSrc}
+                  alt={event.title}
+                  onError={() => setDetailImgSrc(FALLBACK_EVENT_IMAGE)}
+                />
               </div>
               <div className="modal__content">
                 <div className="modal__chips">

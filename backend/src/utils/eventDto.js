@@ -1,3 +1,23 @@
+/** Stock photos when `imageUrl` is missing — keeps list/detail cards visual per category. */
+const CATEGORY_DEFAULT_IMAGES = {
+  Technology: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
+  Music: 'https://images.unsplash.com/photo-1415201361194-42cacf7e5046?w=800&q=80',
+  Career: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80',
+  Arts: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&q=80',
+  Networking: 'https://images.unsplash.com/photo-1517245386807-bb43f65c33c4?w=800&q=80',
+  Sports: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=800&q=80',
+}
+
+const DEFAULT_EVENT_IMAGE =
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80'
+
+function resolveImageUrl(doc) {
+  const raw = String(doc.imageUrl ?? '').trim()
+  if (raw) return raw
+  const cat = String(doc.category ?? '').trim()
+  return CATEGORY_DEFAULT_IMAGES[cat] || DEFAULT_EVENT_IMAGE
+}
+
 export function formatDateLabel(startsAt) {
   if (!startsAt) return 'TBA'
   const d = new Date(startsAt)
@@ -32,7 +52,7 @@ export function toListItem(doc) {
     location: doc.location,
     category: doc.category,
     description: doc.description,
-    imageUrl: doc.imageUrl || '',
+    imageUrl: resolveImageUrl(doc),
     isFree,
     price: isFree ? 0 : price,
     creatorId,
