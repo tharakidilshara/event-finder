@@ -97,12 +97,9 @@ export default function PostEventForm({ onDone, onCancel, editEvent, onClearEdit
         price: p,
       }
       if (editingId) {
-        await patchEvent(editingId, {
-          ...payload,
-          ticketType: isFree ? 'free' : 'paid',
-        })
+        await patchEvent(editingId, payload)
       } else {
-        await createEvent({ ...payload, ticketType: isFree ? 'free' : 'paid' })
+        await createEvent(payload)
       }
       resetToCreate()
       onDone()
@@ -135,7 +132,7 @@ export default function PostEventForm({ onDone, onCancel, editEvent, onClearEdit
         {isEditing ? 'Edit event' : 'Post an event'}
       </h2>
       <p className="saved-panel__lede" id="post-panel-lede">
-        {isEditing ? 'Update this listing, then save changes.' : 'Add a new campus event — saved to the database.'}
+        {isEditing ? 'Update this listing, then save changes.' : 'Add a new event.'}
       </p>
 
       <div className="post-form-stack">
