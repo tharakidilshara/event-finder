@@ -145,8 +145,6 @@ Send `Authorization: Bearer <token>` for protected routes.
 - `src/hooks/useBrowseEvents.js` — browse/search/pagination + exposes `silentRefreshBrowse` for the **auto-refresh interval** (see `BrowseView.jsx` + `useEffect` cleanup per DA219B).
 - Components: `HeaderNav.jsx`, `BrowseView.jsx`, `EventListSection.jsx`, `EventCard.jsx`, `SavedView.jsx`, `PostEventForm.jsx`, `EventDetailModal.jsx`, `AuthModal.jsx`, `RegisterTicketModal.jsx`.
 
-## Git & report (your responsibility)
-
 
 ## License
 
