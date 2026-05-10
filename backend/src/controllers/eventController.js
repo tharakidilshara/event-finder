@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import { Event } from '../models/Event.js'
 import { User } from '../models/User.js'
+import { SavedBookmark } from '../models/SavedBookmark.js'
 import { HttpError } from '../middleware/httpError.js'
 import { assertValidCreateEvent, assertValidPatchEvent } from '../validators/eventValidator.js'
 import { toDetailItem, toListItem } from '../utils/eventDto.js'
@@ -131,6 +132,7 @@ export async function deleteEvent(req, res) {
   if (!ownerId || ownerId !== userId) {
     throw new HttpError(403, 'You can only delete your own events')
   }
+  await SavedBookmark.deleteMany({ event: id })
   await Event.findByIdAndDelete(id).lean()
   res.status(204).send()
 }

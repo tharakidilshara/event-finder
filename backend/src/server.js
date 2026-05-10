@@ -10,6 +10,7 @@ import { errorHandler } from './middleware/errorHandler.js'
 import authRoutes from './routes/authRoutes.js'
 import eventRoutes from './routes/eventRoutes.js'
 import userRoutes from './routes/userRoutes.js'
+import savedBookmarkRoutes from './routes/savedBookmarkRoutes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Always load backend/.env even if Node was started from the repo root
@@ -32,6 +33,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/events', eventRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/saved-events', savedBookmarkRoutes)
 
 app.use((_req, _res, next) => {
   next(new HttpError(404, 'Not found'))
