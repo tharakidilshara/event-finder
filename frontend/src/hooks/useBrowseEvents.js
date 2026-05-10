@@ -28,6 +28,7 @@ function filterEventsLocal(list, query) {
  *   searchHasMore: boolean,
  *   searchInput: string,
  *   setSearchInput: (v: string) => void,
+ *   loadInitialBrowse: () => Promise<void>,
  *   loadEvents: () => Promise<void>,
  *   loadMoreEvents: () => Promise<void>,
  *   silentRefreshBrowse: () => Promise<void>,

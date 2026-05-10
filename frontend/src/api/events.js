@@ -56,6 +56,18 @@ export async function fetchEvents(opts) {
   throw new Error('Invalid response from server')
 }
 
+/**
+ * @param {string} userId
+ * @returns {Promise<{ user: { id: string, name: string, email: string }, events: object[] }>}
+ */
+export async function fetchEventsByUser(userId) {
+  const res = await fetch(`${API_BASE}/api/users/${encodeURIComponent(userId)}/events`)
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res))
+  }
+  return res.json()
+}
+
 /** @returns {Promise<object>} */
 export async function fetchEventById(id) {
   const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(id)}`)

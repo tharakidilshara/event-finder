@@ -1,22 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clearSession, fetchMe, getAccessToken, getStoredUser } from './api/auth.js'
 import { addSavedEvent, fetchSavedEvents, removeSavedEvent } from './api/saved.js'
-import { deleteEvent, fetchEventById } from './api/events.js'
+import { deleteEvent, fetchEventById, fetchEventsByUser } from './api/events.js'
 import AuthModal from './components/AuthModal.jsx'
+import ConfirmDeleteEventModal from './components/ConfirmDeleteEventModal.jsx'
 import BrowseView from './components/BrowseView.jsx'
 import EventDetailModal from './components/EventDetailModal.jsx'
 import HeaderNav from './components/HeaderNav.jsx'
 import PostEventForm from './components/PostEventForm.jsx'
 import RegisterTicketModal from './components/RegisterTicketModal.jsx'
+import MyEventsView from './components/MyEventsView.jsx'
 import SavedView from './components/SavedView.jsx'
 
 export default function App() {
-  const [view, setView] = useState(/** @type {'browse' | 'saved' | 'post'} */ ('browse'))
+  const [view, setView] = useState(/** @type {'browse' | 'saved' | 'post' | 'mine'} */ ('browse'))
   const [user, setUser] = useState(() => getStoredUser())
   const [savedIds, setSavedIds] = useState(() => new Set())
   const [savedEvents, setSavedEvents] = useState([])
   const [savedLoading, setSavedLoading] = useState(false)
   const [savedError, setSavedError] = useState(/** @type {string | null} */ (null))
+
+  const [myPublishedEvents, setMyPublishedEvents] = useState(/** @type {object[]} */ ([]))
+  const [myPublishedLoading, setMyPublishedLoading] = useState(false)
+  const [myPublishedError, setMyPublishedError] = useState(/** @type {string | null} */ (null))
 
   const [authOpen, setAuthOpen] = useState(false)
   const [authStartRegister, setAuthStartRegister] = useState(false)
@@ -31,6 +37,10 @@ export default function App() {
 
   const [editEvent, setEditEvent] = useState(/** @type {object | null} */ (null))
   const [postPrefetchBusy, setPostPrefetchBusy] = useState(false)
+
+  /** Pending delete: which event and whether it was opened from My events or the detail modal. */
+  const [deleteConfirm, setDeleteConfirm] = useState(/** @type {{ id: string, title: string, source: 'my' | 'detail' } | null} */ (null))
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const browseBufferRef = useRef(/** @type {object[]} */ ([]))
   const authSuccessRef = useRef(/** @type {null | (() => void)} */ (null))
@@ -67,9 +77,32 @@ export default function App() {
   }, [view, refreshSavedList])
 
   useEffect(() => {
-    if (authOpen || detailOpen || registerOpen) document.body.classList.add('modal-open')
+    if (view !== 'mine' || !user?.id) return undefined
+    let cancelled = false
+    setMyPublishedLoading(true)
+    setMyPublishedError(null)
+    void (async () => {
+      try {
+        const { events } = await fetchEventsByUser(user.id)
+        if (!cancelled) setMyPublishedEvents(Array.isArray(events) ? events : [])
+      } catch (e) {
+        if (!cancelled) {
+          setMyPublishedError(e instanceof Error ? e.message : 'Could not load your events')
+          setMyPublishedEvents([])
+        }
+      } finally {
+        if (!cancelled) setMyPublishedLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [view, user?.id])
+
+  useEffect(() => {
+    if (authOpen || detailOpen || registerOpen || deleteConfirm) document.body.classList.add('modal-open')
     else document.body.classList.remove('modal-open')
-  }, [authOpen, detailOpen, registerOpen])
+  }, [authOpen, detailOpen, registerOpen, deleteConfirm])
 
   const canManageEvent = useCallback(
     (event) => {
@@ -180,11 +213,27 @@ export default function App() {
     setView('saved')
   }, [])
 
+  const goMine = useCallback(() => {
+    if (!getAccessToken()) {
+      openAuth({
+        onSuccess: () => {
+          setEditEvent(null)
+          setView('mine')
+        },
+      })
+      return
+    }
+    setEditEvent(null)
+    setView('mine')
+  }, [openAuth])
+
   const onSignOut = useCallback(() => {
     clearSession()
     setUser(null)
     setSavedIds(new Set())
     setSavedEvents([])
+    setMyPublishedEvents([])
+    setMyPublishedError(null)
     setEditEvent(null)
     setView('browse')
   }, [])
@@ -194,9 +243,59 @@ export default function App() {
     void refreshSavedList()
   }, [refreshSavedList])
 
+  const openDeleteConfirmFromMyList = useCallback(
+    (eventId) => {
+      const row = myPublishedEvents.find((r) => r.id === eventId)
+      setDeleteConfirm({ id: eventId, title: String(row?.title ?? 'This event'), source: 'my' })
+    },
+    [myPublishedEvents],
+  )
+
+  const runConfirmedDelete = useCallback(async () => {
+    const pending = deleteConfirm
+    if (!pending) return
+    setDeleteBusy(true)
+    try {
+      await deleteEvent(pending.id)
+      setDeleteConfirm(null)
+      if (pending.source === 'detail') {
+        closeDetail()
+      } else {
+        setMyPublishedEvents((rows) => rows.filter((r) => r.id !== pending.id))
+      }
+      afterMutation()
+      await refreshSavedList()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Delete failed'
+      if (/sign in|session|401/i.test(msg)) openAuth({ onSuccess: () => {} })
+      else window.alert(msg)
+    } finally {
+      setDeleteBusy(false)
+    }
+  }, [deleteConfirm, closeDetail, afterMutation, refreshSavedList, openAuth])
+
+  const handleEditMyEvent = useCallback((eventId) => {
+    setView('post')
+    setPostPrefetchBusy(true)
+    void (async () => {
+      try {
+        let ev =
+          myPublishedEvents.find((x) => x.id === eventId) ?? browseBufferRef.current.find((x) => x.id === eventId)
+        if (!ev?.startsAt) ev = await fetchEventById(eventId)
+        setEditEvent(ev)
+      } catch {
+        window.alert('Could not load event for editing.')
+        setEditEvent(null)
+        setView('mine')
+      } finally {
+        setPostPrefetchBusy(false)
+      }
+    })()
+  }, [myPublishedEvents])
+
   return (
     <div className="page">
-      <HeaderNav view={view} user={user} onHome={goBrowse} onSaved={goSaved} onPost={goPost} onSignOut={onSignOut} />
+      <HeaderNav view={view} user={user} onHome={goBrowse} onSaved={goSaved} onMine={goMine} onPost={goPost} onSignOut={onSignOut} />
 
       <main className="main">
         {view === 'browse' ? (
@@ -218,6 +317,19 @@ export default function App() {
             savedIds={savedIds}
             onOpenEvent={(id) => void openEventById(id)}
             onToggleSave={(id) => void toggleSave(id)}
+          />
+        ) : null}
+
+        {view === 'mine' && user ? (
+          <MyEventsView
+            events={myPublishedEvents}
+            loading={myPublishedLoading}
+            error={myPublishedError}
+            savedIds={savedIds}
+            onOpenEvent={(id) => void openEventById(id)}
+            onToggleSave={(id) => void toggleSave(id)}
+            onEditEvent={handleEditMyEvent}
+            onDeleteEvent={openDeleteConfirmFromMyList}
           />
         ) : null}
 
@@ -280,21 +392,7 @@ export default function App() {
         }}
         onDelete={() => {
           if (!detailEvent) return
-          if (!window.confirm('Delete this event permanently? This cannot be undone.')) return
-          setDetailActionsDisabled(true)
-          void (async () => {
-            try {
-              await deleteEvent(detailEvent.id)
-              closeDetail()
-              afterMutation()
-            } catch (e) {
-              const msg = e instanceof Error ? e.message : 'Delete failed'
-              if (/sign in|session|401/i.test(msg)) openAuth({ onSuccess: () => {} })
-              else window.alert(msg)
-            } finally {
-              setDetailActionsDisabled(false)
-            }
-          })()
+          setDeleteConfirm({ id: detailEvent.id, title: detailEvent.title, source: 'detail' })
         }}
         onRegister={() => {
           if (!detailEvent) return
@@ -321,6 +419,14 @@ export default function App() {
         onSubmit={(payload) => {
           console.info('[HittaEvent mock booking]', payload)
         }}
+      />
+
+      <ConfirmDeleteEventModal
+        open={Boolean(deleteConfirm)}
+        eventTitle={deleteConfirm?.title ?? ''}
+        busy={deleteBusy}
+        onCancel={() => !deleteBusy && setDeleteConfirm(null)}
+        onConfirm={() => void runConfirmedDelete()}
       />
 
       <AuthModal open={authOpen} startRegister={authStartRegister} onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />

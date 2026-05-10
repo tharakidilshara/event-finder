@@ -147,8 +147,7 @@ Send `Authorization: Bearer <token>` for protected routes.
 
 ## Git & report (your responsibility)
 
-The lab requires **meaningful Git history**, **report PDF** (overview, ERD, example endpoints, reflection, iteration with commit hashes), and seminar prep. This repo does not enforce commits for you — plan incremental commits and conventional messages (`feat:`, `fix:`) as you go.
 
 ## License
 
-Private / coursework — adjust as needed for your course or organization.
+

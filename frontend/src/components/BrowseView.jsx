@@ -56,7 +56,6 @@ export default function BrowseView({ savedIds, onOpenEvent, onToggleSave, onBrow
   return (
     <div id="view-browse" className="view-panel">
       <section className="hero" aria-labelledby="hero-title">
-        <p className="hero__eyebrow">Campus &amp; community</p>
         <h1 id="hero-title" className="hero__title">
           Find events that fit your week
         </h1>

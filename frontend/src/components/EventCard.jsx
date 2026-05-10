@@ -13,13 +13,13 @@ function BookmarkIcon({ filled }) {
   )
 }
 
-/** @param {{ event: object, isSaved: boolean, onOpen: () => void, onToggleSave: (e: { stopPropagation: () => void }) => void }} props */
-export default function EventCard({ event, isSaved, onOpen, onToggleSave }) {
+/** @param {{ event: object, isSaved: boolean, onOpen: () => void, onToggleSave: (e: { stopPropagation: () => void }) => void, hideSave?: boolean, onEdit?: () => void, onDelete?: () => void }} props */
+export default function EventCard({ event, isSaved, onOpen, onToggleSave, hideSave = false, onEdit, onDelete }) {
   const priceLabel = event.isFree ? 'Free' : `$${Number(event.price) > 0 ? event.price : 0}`
 
   return (
     <li
-      className="event-card"
+      className={`event-card${hideSave ? ' event-card--no-save' : ''}`}
       role="button"
       tabIndex={0}
       data-action="open-event"
@@ -44,6 +44,36 @@ export default function EventCard({ event, isSaved, onOpen, onToggleSave }) {
         <p className="event-card__when">{event.dateLabel}</p>
         <p className="event-card__where">{event.location}</p>
         <p className="event-card__desc">{event.description}</p>
+        {onEdit || onDelete ? (
+          <div className="event-card__owner-actions">
+            {onEdit ? (
+              <button
+                type="button"
+                className="event-card__edit"
+                aria-label={`Edit “${event.title}”`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit()
+                }}
+              >
+                Edit
+              </button>
+            ) : null}
+            {onDelete ? (
+              <button
+                type="button"
+                className="event-card__delete"
+                aria-label={`Delete “${event.title}”`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete()
+                }}
+              >
+                Delete
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       <div className="event-card__thumb-cell">
         {event.imageUrl ? (
@@ -52,21 +82,23 @@ export default function EventCard({ event, isSaved, onOpen, onToggleSave }) {
           <div className="event-card__thumb event-card__thumb--placeholder" aria-hidden="true" />
         )}
       </div>
-      <button
-        type="button"
-        className={`event-card__save ${isSaved ? 'event-card__save--saved' : ''}`}
-        data-action="save-event"
-        data-event-id={event.id}
-        aria-pressed={isSaved}
-        aria-label={isSaved ? `Remove “${event.title}” from saved` : `Save “${event.title}”`}
-        title={isSaved ? 'Remove from saved' : 'Save event'}
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleSave(e)
-        }}
-      >
-        <BookmarkIcon filled={isSaved} />
-      </button>
+      {!hideSave ? (
+        <button
+          type="button"
+          className={`event-card__save ${isSaved ? 'event-card__save--saved' : ''}`}
+          data-action="save-event"
+          data-event-id={event.id}
+          aria-pressed={isSaved}
+          aria-label={isSaved ? `Remove “${event.title}” from saved` : `Save “${event.title}”`}
+          title={isSaved ? 'Remove from saved' : 'Save event'}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleSave(e)
+          }}
+        >
+          <BookmarkIcon filled={isSaved} />
+        </button>
+      ) : null}
     </li>
   )
 }

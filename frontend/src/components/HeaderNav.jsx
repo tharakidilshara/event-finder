@@ -1,14 +1,15 @@
 /**
  * @param {{
- *   view: 'browse' | 'saved' | 'post',
+ *   view: 'browse' | 'saved' | 'post' | 'mine',
  *   user: { id: string, name: string, email: string } | null,
  *   onHome: () => void,
  *   onSaved: () => void,
+ *   onMine: () => void,
  *   onPost: () => void,
  *   onSignOut: () => void,
  * }} props
  */
-export default function HeaderNav({ view, user, onHome, onSaved, onPost, onSignOut }) {
+export default function HeaderNav({ view, user, onHome, onSaved, onMine, onPost, onSignOut }) {
   return (
     <header className="header">
       <a className="logo" href="/" id="logo-home" onClick={(e) => { e.preventDefault(); onHome() }}>
@@ -23,6 +24,15 @@ export default function HeaderNav({ view, user, onHome, onSaved, onPost, onSignO
         </button>
         <button type="button" className={`nav__link ${view === 'saved' ? 'nav__link--active' : ''}`} id="nav-saved" aria-current={view === 'saved' ? 'page' : undefined} onClick={onSaved}>
           Saved
+        </button>
+        <button
+          type="button"
+          className={`nav__link ${view === 'mine' ? 'nav__link--active' : ''}`}
+          id="nav-my-events"
+          aria-current={view === 'mine' ? 'page' : undefined}
+          onClick={onMine}
+        >
+          My events
         </button>
         <span className="nav__user" id="nav-user-label" hidden={!user}>
           {user ? user.name || user.email : ''}

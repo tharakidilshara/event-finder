@@ -1186,6 +1186,13 @@ button.nav__link.nav__link--active {
   outline-offset: 2px;
 }
 
+/* My events (Edit/Delete): fixed card height + body overflow:hidden clipped the action row */
+.event-card.event-card--no-save {
+  height: auto;
+  min-height: var(--event-card-height);
+  grid-template-rows: minmax(var(--event-card-height), auto);
+}
+
 .event-card__body {
   display: flex;
   flex-direction: column;
@@ -1195,6 +1202,79 @@ button.nav__link.nav__link--active {
   padding: 1.1rem 3.35rem 1.1rem 1.25rem;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.event-card--no-save .event-card__body {
+  height: auto;
+  overflow: visible;
+  padding-right: 1.25rem;
+  padding-bottom: 1rem;
+}
+
+.event-card--no-save .event-card__desc {
+  -webkit-line-clamp: 2;
+  min-height: calc(2 * 1.45 * 0.9375rem);
+}
+
+.event-card__owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  flex-shrink: 0;
+  padding-top: 0.5rem;
+}
+
+.event-card__edit {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-strong));
+  color: var(--accent-hot);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.event-card__edit:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+
+.event-card__delete {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #dc2626 42%, var(--border-strong));
+  color: #b91c1c;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.event-card__delete:hover {
+  background: color-mix(in srgb, #dc2626 14%, var(--surface));
+  border-color: color-mix(in srgb, #dc2626 55%, var(--border));
+}
+
+@media (prefers-color-scheme: dark) {
+  .event-card__delete {
+    color: #fca5a5;
+    border-color: color-mix(in srgb, #f87171 35%, var(--border-strong));
+  }
+
+  .event-card__delete:hover {
+    background: color-mix(in srgb, #dc2626 22%, transparent);
+  }
 }
 
 .event-card__thumb-cell {
@@ -1244,6 +1324,11 @@ button.nav__link.nav__link--active {
   }
   .event-card__body {
     padding: 0.9rem 3.1rem 0.9rem 1rem;
+  }
+
+  .event-card--no-save .event-card__body {
+    padding-right: 1rem;
+    padding-bottom: 0.85rem;
   }
   .event-card__thumb,
   .event-card__thumb--placeholder {
@@ -1706,6 +1791,35 @@ body.modal-open {
 
 .modal--register {
   z-index: 1100;
+}
+
+.modal--confirm-delete {
+  z-index: 1200;
+}
+
+.confirm-delete-modal__panel {
+  padding: 1.35rem 1.5rem 1.4rem;
+}
+
+.confirm-delete-modal__title {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--heading);
+  line-height: 1.25;
+}
+
+.confirm-delete-modal__text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.confirm-delete-modal__event-name {
+  font-weight: 700;
+  color: var(--heading);
+  word-break: break-word;
 }
 
 .modal__panel--form .modal__close {
