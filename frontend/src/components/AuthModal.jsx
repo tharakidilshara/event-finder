@@ -81,31 +81,32 @@ export default function AuthModal(props) {
         <p className="auth-modal__error" id="auth-modal-error" hidden={!error} role="alert">
           {error}
         </p>
-        <form className="auth-modal__form" id="auth-modal-form" onSubmit={onSubmit}>
+        <form className="auth-modal__form" id="auth-modal-form" onSubmit={onSubmit} aria-busy={busy ? 'true' : 'false'}>
           <div className="auth-modal__field" id="auth-field-name" hidden={!isRegister}>
             <label className="auth-modal__label" htmlFor="auth-name">
               Name
             </label>
-            <input className="auth-modal__input" id="auth-name" name="name" type="text" autoComplete="name" maxLength={120} disabled={!isRegister} value={name} onChange={(e) => setName(e.target.value)} />
+            <input className="auth-modal__input" id="auth-name" name="name" type="text" autoComplete="name" maxLength={120} disabled={!isRegister || busy} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="auth-modal__field">
             <label className="auth-modal__label" htmlFor="auth-email">
               Email
             </label>
-            <input className="auth-modal__input" id="auth-email" name="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input className="auth-modal__input" id="auth-email" name="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
           </div>
           <div className="auth-modal__field">
             <label className="auth-modal__label" htmlFor="auth-password">
               Password
             </label>
-            <input className="auth-modal__input" id="auth-password" name="password" type="password" required minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input className="auth-modal__input" id="auth-password" name="password" type="password" required minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
           </div>
           <button type="submit" className="btn btn--primary auth-modal__submit" id="auth-submit-btn" disabled={busy}>
-            {isRegister ? 'Create account' : 'Sign in'}
+            <span className="btn__spinner" hidden={!busy} aria-hidden="true" />
+            <span id="auth-submit-label">{busy ? (isRegister ? 'Creating account…' : 'Signing in…') : isRegister ? 'Create account' : 'Sign in'}</span>
           </button>
         </form>
         <p className="auth-modal__switch">
-          <button type="button" className="auth-modal__link-btn" id="auth-switch-mode" onClick={() => { setMode(isRegister ? 'login' : 'register'); setError('') }}>
+          <button type="button" className="auth-modal__link-btn" id="auth-switch-mode" disabled={busy} onClick={() => { setMode(isRegister ? 'login' : 'register'); setError('') }}>
             {isRegister ? 'Already have an account? Sign in' : 'Create an account'}
           </button>
         </p>
