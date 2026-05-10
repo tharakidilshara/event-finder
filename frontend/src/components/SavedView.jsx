@@ -21,7 +21,6 @@ export default function SavedView({ events, loading, error, savedIds, onOpenEven
         <h2 id="saved-title" className="saved-panel__title">
           Saved events
         </h2>
-        <p className="saved-panel__lede">Events you bookmarked from the list (stored in your account).</p>
         <p className="saved-panel__empty" id="saved-empty-msg" hidden={events.length > 0 || loading} role="status">
           {error || 'No saved events yet. Open Home, find an event in the list, then tap the bookmark on a card.'}
         </p>
