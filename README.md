@@ -46,7 +46,7 @@ This project targets **DA219B (Fullstack Lab, Kristianstad University)**: **Reac
    npm install --prefix frontend
    ```
 
-   Optional: from the repo root, `npm install` installs **concurrently** so both servers start with one command.
+   From the repo root, `npm install` installs **concurrently** so both servers start with one command.
 
 4. **Seed the database** (recommended — creates **≥5 users**, **6 events**, **11 saved-bookmark** rows; all accounts use the same demo password)
 
