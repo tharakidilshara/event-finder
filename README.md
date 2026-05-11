@@ -1,90 +1,72 @@
-# EventFinder (HittaEvent)
+## EventFinder (HittaEvent)
 
-**Problem it solves:** Students and staff waste time jumping between chat groups, PDF posters, and half-updated websites to figure out what is actually on this week — HittaEvent pulls campus-style listings into one searchable place, with saved shortlists and organizer tools behind sign-in.
+**Problem it solves**: people often have to jump between chat groups, posters, social media posts, and half-updated pages to figure out what events are actually happening. EventFinder brings listings into one searchable place with **saved events** and **organizer tools** behind sign-in.
 
-This project targets **DA219B (Fullstack Lab, Kristianstad University)**: **React (Vite)**, **Express**, **MongoDB Atlas**, Router → Controller → Model, CRUD + relational routes, validation, seed data, and a README another developer can follow in a few minutes.
+This project was built for **DA219B (Fullstack Lab, Kristianstad University)** and follows the required patterns: **React (Vite)** frontend, **Express + Mongoose** backend, **MongoDB Atlas**, Router → Controller → Model, CRUD, validation, and seeded example data.
 
-## Stack
+### Stack
 
-| Layer    | Technology                                      |
-| -------- | ----------------------------------------------- |
-| Frontend | **React 19** (Vite 5), ES modules, JSX          |
-| Backend  | Node.js, **Express**, **Mongoose**              |
-| Auth     | bcryptjs, jsonwebtoken                          |
-| Database | **MongoDB** (Atlas URI in `.env`; lab expects Atlas) |
+- **Frontend**: React (Vite)
+- **Backend**: Node.js + Express (ES modules)
+- **Database**: MongoDB (Atlas connection string in `.env`)
+- **Auth**: JWT (bearer tokens), bcrypt password hashing
+
+### Features
+
+- **Browse + search** events with pagination (`limit` / `skip`)
+- **Event details modal** (creator info populated from backend)
+- **Register/login** with JWT auth, “Me” endpoint
+- **Saved events** list (bookmark table/collection)
+- **Post an event** (create), **edit/delete** your own events
+- **My events** view (events created by the logged-in user)
+- **Category statistics** endpoint (aggregation)
+- **Image handling**: if an event has no image URL (or it fails to load), the UI shows a fallback image
 
 ## Prerequisites
 
-- **Node.js** 18+ (20 LTS recommended)
-- **MongoDB Atlas** (or compatible URI in `MONGODB_URI`)
+- **Node.js 18+** (Node 20 LTS recommended)
+- A **MongoDB Atlas** database (or any MongoDB connection string)
 
-## Quick start
+## Quick start (Windows / PowerShell friendly)
 
-1. **Clone the repo** and open the project folder.
+### 1) Install dependencies
 
-2. **Backend environment**
+From the repo root:
 
-   Cross-platform (creates `backend/.env` only if it does not exist yet):
+```bash
+npm install
+npm install --prefix backend
+npm install --prefix frontend
+```
 
-   ```bash
-   npm run init-env --prefix backend
-   ```
+Why both? The root install is required for the root `npm run dev` script (it installs `concurrently`). Backend and frontend each have their own dependencies too.
 
-   Or copy manually: `cp backend/.env.example backend/.env` (Unix) / `Copy-Item backend\.env.example backend\.env` (PowerShell).
+### 2) Backend environment (`backend/.env`)
 
-   Edit `backend/.env`:
+Create the file:
 
-   - `MONGODB_URI` — Atlas connection string (include database name, e.g. `.../eventfinder`).
-   - `JWT_SECRET` — long random secret (required for register/login). Example: `openssl rand -hex 32`
-   - `PORT` — API port (default `5000`).
-   - `CORS_ORIGIN` — origin of the Vite app (default `http://localhost:5173`).
+```bash
+npm run init-env --prefix backend
+```
 
-3. **Install dependencies**
+Or copy manually:
 
-   ```bash
-   npm install --prefix backend
-   npm install --prefix frontend
-   ```
+```powershell
+Copy-Item backend\.env.example backend\.env
+```
 
-   From the repo root, `npm install` installs **concurrently** so both servers start with one command.
+Then edit `backend/.env` (based on `backend/.env.example`):
 
-4. **Seed the database** (recommended — creates **≥5 users**, **6 events**, **11 saved-bookmark** rows; all accounts use the same demo password)
+- **`PORT`**: API port (default `5000`)
+- **`MONGODB_URI`**: Atlas connection string (include a database name, e.g. `.../eventfinder`)
+- **`CORS_ORIGIN`**: Vite origin (default `http://localhost:5173`)
+- **`JWT_SECRET`**: long random string used to sign tokens
 
-   ```bash
-   npm run seed --prefix backend
-   ```
+### 3) Frontend environment (`frontend/.env`) (optional)
 
-   Primary organizer login:
+Only needed if your API is not `http://localhost:5000`.
 
-   - **Email:** `demo.organizer@eventfinder.example`
-   - **Password:** `demo1234`
-
-   Other seeded users share the same password (see `backend/src/scripts/seedExampleData.js` for `@student.kristianstad.se` / alumni emails).
-
-5. **Run in development**
-
-   **Option A — two terminals**
-
-   ```bash
-   npm run dev --prefix backend
-   npm run dev --prefix frontend
-   ```
-
-   **Option B — one command** (after `npm install` at the repo root)
-
-   ```bash
-   npm run dev
-   ```
-
-   Open the URL Vite prints (usually **http://localhost:5173**). The client calls **http://localhost:5000** unless you set `VITE_API_URL` (see below).
-
-6. **Health check**
-
-   `GET http://localhost:5000/api/health` — returns `{ ok, mongo }` when the API and database are up.
-
-## Frontend API base URL
-
-Create `frontend/.env` if the API is not on port 5000:
+Create `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:5000
@@ -92,60 +74,126 @@ VITE_API_URL=http://localhost:5000
 
 Restart Vite after changing env files.
 
-## Database collections (DA219B §3)
+### 4) Seed example data (recommended)
 
-| Collection (Mongoose) | Purpose |
-| ---------------------- | -------- |
-| `users` | Accounts (name, email, password hash). |
-| `events` | Listings (`createdBy` → `users._id`). |
-| `savedbookmarks` | Who saved which event (`user` + `event` → ObjectIds, unique pair). |
+```bash
+npm run seed --prefix backend
+```
 
-Relationships: `Event.createdBy` → `User`; `SavedBookmark.user` → `User`; `SavedBookmark.event` → `Event`. Deleting an event removes its bookmark rows.
+Seed creates example users/events/bookmarks. Demo organizer login:
+
+- **Email**: `demo.organizer@eventfinder.example`
+- **Password**: `demo1234`
+
+### 5) Run in development
+
+Option A (one command, two servers):
+
+```bash
+npm run dev
+```
+
+Run this command **from the repo root** (same folder as the root `package.json`) to start **both** the backend and frontend together.
+
+Option B (two terminals):
+
+```bash
+npm run dev --prefix backend
+```
+
+```bash
+npm run dev --prefix frontend
+```
+
+Open the URL Vite prints (usually `http://localhost:5173`).
+
+### 6) Health check
+
+Request:
+
+- `GET /api/health` (on the backend base URL, default `http://localhost:5000/api/health`)
 
 ## NPM scripts
 
-| Location    | Command        | Purpose                                      |
-| ----------- | -------------- | -------------------------------------------- |
-| Repo root   | `npm run dev`  | Runs backend + frontend dev servers together |
-| `backend/`  | `npm run dev`  | Express with `--watch`                       |
-| `backend/`  | `npm start`    | `node src/server.js`                         |
-| `backend/`  | `npm run init-env` | Copy `.env.example` → `.env` if missing   |
-| `backend/`  | `npm run seed` | Seed users, events, bookmarks                |
-| `frontend/` | `npm run dev`  | Vite + React dev server                      |
-| `frontend/` | `npm run build`| Production build → `frontend/dist`          |
-| `frontend/` | `npm run preview` | Preview production build                  |
+- **Repo root**
+  - **`npm run dev`**: run backend + frontend together (uses `concurrently`)
+- **`backend/`**
+  - **`npm run dev`**: start API using `node --watch`
+  - **`npm start`**: start API (no watch)
+  - **`npm run init-env`**: create `backend/.env` from `.env.example` if missing
+  - **`npm run seed`**: seed users/events/bookmarks
+- **`frontend/`**
+  - **`npm run dev`**: start Vite
+  - **`npm run build`**: production build to `frontend/dist`
+  - **`npm run preview`**: preview the production build
+
+## Database collections (DA219B)
+
+- **`users`**: accounts (name, email, password hash)
+- **`events`**: event listings (`createdBy` → `users._id`)
+- **`savedbookmarks`**: join collection (unique `user` + `event` pair)
+
+Relationship summary:
+
+- `Event.createdBy` → `User`
+- `SavedBookmark.user` → `User`
+- `SavedBookmark.event` → `Event`
+
+When an event is deleted, its bookmark rows are removed.
 
 ## API overview
 
 Base path: `/api`
 
-| Method & path | Auth | Description |
-| ------------- | ---- | ------------- |
-| `GET /health` | — | Liveness / Mongo state |
-| `POST /auth/register` | — | Create account |
-| `POST /auth/login` | — | Issue JWT |
-| `GET /auth/me` | Bearer | Current user |
-| `GET /events` | — | List + search + `limit` / `skip` |
-| `GET /events/stats/by-category` | — | Category statistics (aggregation) |
-| `GET /events/:id` | — | Single event (populates `createdBy`) |
-| `POST /events` | Bearer | Create event |
-| `PATCH /events/:id` | Bearer | Update (creator) |
-| `DELETE /events/:id` | Bearer | Delete (creator) |
-| `GET /users/:userId/events` | — | Events created by user |
-| `GET /saved-events` | Bearer | Current user’s saved events (populated) |
-| `POST /saved-events` | Bearer | Body `{ "eventId": "<id>" }` — save |
-| `DELETE /saved-events/:eventId` | Bearer | Remove saved row |
+### Auth
 
-Send `Authorization: Bearer <token>` for protected routes.
+- `POST /auth/register` — create an account
+- `POST /auth/login` — login and get a JWT
+- `GET /auth/me` — current user (requires `Authorization: Bearer <token>`)
+
+### Events
+
+- `GET /events` — list + search + pagination (`q`, `limit`, `skip`)
+- `GET /events/:id` — single event (includes populated `createdBy`)
+- `POST /events` — create event (auth required)
+- `PATCH /events/:id` — update event (auth + creator only)
+- `DELETE /events/:id` — delete event (auth + creator only)
+- `GET /events/stats/by-category` — aggregation stats
+
+### Relational routes
+
+- `GET /users/:userId/events` — events created by a user
+
+### Saved events
+
+- `GET /saved-events` — current user’s saved events (auth required)
+- `POST /saved-events` — save an event, body `{ "eventId": "<id>" }` (auth required)
+- `DELETE /saved-events/:eventId` — unsave (auth required)
 
 ## Frontend structure (React)
 
-- `src/main.jsx` — mount root.
-- `src/App.jsx` — navigation, saved state, modals, global refresh after mutations.
-- `src/hooks/useBrowseEvents.js` — browse/search/pagination + exposes `silentRefreshBrowse` for the **auto-refresh interval** (see `BrowseView.jsx` + `useEffect` cleanup per DA219B).
-- Components: `HeaderNav.jsx`, `BrowseView.jsx`, `EventListSection.jsx`, `EventCard.jsx`, `SavedView.jsx`, `PostEventForm.jsx`, `EventDetailModal.jsx`, `AuthModal.jsx`, `RegisterTicketModal.jsx`.
+- `frontend/src/App.jsx` — navigation, views, modals, refresh after mutations
+- `frontend/src/hooks/useBrowseEvents.js` — browse/search/pagination + silent refresh interval support
+- `frontend/src/components/` — key UI components:
+  - `HeaderNav.jsx`
+  - `BrowseView.jsx`
+  - `MyEventsView.jsx`
+  - `SavedView.jsx`
+  - `PostEventForm.jsx`
+  - `EventCard.jsx`
+  - `EventDetailModal.jsx`
 
+## Troubleshooting
 
-## License
+### Port already in use (`EADDRINUSE :5000`)
 
+Another process is already using port 5000. Stop the old backend process or change `PORT` in `backend/.env`, then restart the backend (and update `VITE_API_URL` if needed).
+
+### CORS errors in the browser
+
+Make sure `CORS_ORIGIN` in `backend/.env` matches the exact frontend origin (usually `http://localhost:5173`). Then restart the backend.
+
+### Mongo connection fails
+
+Double-check `MONGODB_URI` in `backend/.env` (Atlas username/password, IP allowlist, and that the URI includes a database name).
 
